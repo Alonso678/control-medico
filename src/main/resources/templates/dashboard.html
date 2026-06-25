@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control Médico Familiar</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="/"><i class="bi bi-heart-pulse-fill me-2"></i>Control Médico Familiar</a>
+            <div class="navbar-nav">
+                <a class="nav-link active" href="/">Dashboard</a>
+                <a class="nav-link" href="/reporte">Reporte Individual</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="row text-center mb-4">
+            <div class="col-md-4 mb-3">
+                <div class="card border-0 shadow-sm bg-white h-100">
+                    <div class="card-body">
+                        <div class="text-success mb-2"><i class="bi bi-cash-coin fs-1"></i></div>
+                        <h6 class="card-title text-muted text-uppercase small">Total Aportado</h6>
+                        <h3 class="card-text fw-bold text-success" th:text="${'$' + #numbers.formatDecimal(totalAportado, 1, 'DEFAULT', 2, 'DEFAULT')}">$0.00</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card border-0 shadow-sm bg-white h-100">
+                    <div class="card-body">
+                        <div class="text-danger mb-2"><i class="bi bi-cart-dash fs-1"></i></div>
+                        <h6 class="card-title text-muted text-uppercase small">Total Gastado</h6>
+                        <h3 class="card-text fw-bold text-danger" th:text="${'$' + #numbers.formatDecimal(totalGastado, 1, 'DEFAULT', 2, 'DEFAULT')}">$0.00</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card border-0 shadow-sm text-white bg-dark h-100">
+                    <div class="card-body">
+                        <div class="text-warning mb-2"><i class="bi bi-wallet2 fs-1"></i></div>
+                        <h6 class="card-title text-light text-uppercase small">Fondos Disponibles</h6>
+                        <h3 class="card-text fw-bold text-warning" th:text="${'$' + #numbers.formatDecimal(balanceDisponible, 1, 'DEFAULT', 2, 'DEFAULT')}">$0.00</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm bg-white mb-5">
+            <button type="button" class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#modalRegistro">
+                <i class="bi bi-plus-lg me-1"></i> Registrar Movimiento
+            </button>
+            <div class="card-body px-4 pb-4">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light text-muted">
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Familiar</th>
+                                <th>Tipo</th>
+                                <th>Categoría Médica</th>
+                                <th>Descripción</th>
+                                <th class="text-end">Monto</th>
+                                <th class="text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:if="${#lists.isEmpty(movimientos)}">
+                                <td colspan="6" class="text-center text-muted py-4">No hay movimientos financieros capturados todavía.</td>
+                            </tr>
+                            <tr th:each="mov : ${movimientos}">
+                                <td th:text="${mov.fecha}">2026-01-01</td>
+                                <td th:text="${mov.familiar.nombre}" class="fw-semibold text-dark">Juan Perez</td>
+                                <td>
+                                    <span th:if="${mov.tipo == 'APORTACION'}"
+                                        class="badge bg-success-subtle text-success border border-success-subtle rounded-pill">Aportación</span>
+                                    <span th:if="${mov.tipo == 'GASTO'}"
+                                        class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill">Gasto</span>
+                                </td>
+                                <td th:text="${mov.categoria != null ? mov.categoria.nombre : '—'}" class="text-muted">Consulta</td>
+                                <td th:text="${mov.descripcion}">Compra de medicamento base</td>
+                                <td th:text="${'$' + #numbers.formatDecimal(mov.monto, 1, 'DEFAULT', 2, 'DEFAULT')}"
+                                    th:classappend="${mov.tipo == 'APORTACION' ? 'text-success fw-bold text-end' : 'text-danger fw-bold text-end'}">
+                                    $0.00
+                                </td>
+                                <td class="text-center">
+                                    <form th:action="@{/movimientos/eliminar}" method="post"
+                                        onsubmit="return confirm('¿Estás seguro de que deseas eliminar este movimiento financiero? Esta acción no se puede deshacer.');"
+                                        style="display:inline;">
+                                        <input type="hidden" name="id" th:value="${mov.id}" />
+                                        <button type="submit" class="btn btn-link text-danger p-0 m-0 align-baseline" title="Eliminar Registro">
+                                            <i class="bi bi-trash3-fill fs-5"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            </tbody>
+                    </table>
+                </div>
+                </div> <div th:if="${totalPaginas > 1}" class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+                    <div class="text-muted small">
+                        Página <span class="fw-bold" th:text="${paginaActual + 1}">1</span> de <span class="fw-bold" th:text="${totalPaginas}">5</span>
+                    </div>
+                    <nav aria-label="Navegación de historial">
+                        <ul class="pagination pagination-sm mb-0">
+                            <li class="page-item" th:classappend="${paginaActual == 0} ? 'disabled'">
+                                <a class="page-link" th:href="@{/(page=${paginaActual - 1})}" tabindex="-1">Anterior</a>
+                            </li>
+                            
+                            <li class="page-item" th:each="i : ${#numbers.sequence(0, totalPaginas - 1)}" th:classappend="${i == paginaActual} ? 'active'">
+                                <a class="page-link" th:href="@{/(page=${i})}" th:text="${i + 1}">1</a>
+                            </li>
+                            
+                            <li class="page-item" th:classappend="${paginaActual + 1 == totalPaginas} ? 'disabled'">
+                                <a class="page-link" th:href="@{/(page=${paginaActual + 1})}">Siguiente</a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+<!-- MODAL DE REGISTRO FINANCIERO -->
+<div class="modal fade" id="modalRegistro" tabindex="-1" aria-labelledby="modalRegistroLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold" id="modalRegistroLabel"><i class="bi bi-calculator me-2"></i>Capturar Transacción</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form th:action="@{/movimientos/guardar}" th:object="${movimiento}" method="post">
+                <div class="modal-body p-4">
+                    
+                    <!-- Campo: Fecha -->
+                    <div class="mb-3">
+                        <label for="fecha" class="form-label text-muted small fw-bold">Fecha del Movimiento</label>
+                        <input type="date" th:field="*{fecha}" id="fecha" class="form-control" required>
+                    </div>
+
+                    <!-- Campo: Familiar -->
+                    <div class="mb-3">
+                        <label for="familiar" class="form-label text-muted small fw-bold">Miembro Familiar</label>
+                        <select th:field="*{familiar.id}" id="familiar" class="form-select" required>
+                            <option value="" disabled selected>Selecciona un familiar...</option>
+                            <option th:each="fam : ${familiares}" th:value="${fam.id}" th:text="${fam.nombre}"></option>
+                        </select>
+                    </div>
+
+                    <!-- Campo: Tipo de Movimiento -->
+                    <div class="mb-3">
+                        <label for="tipo" class="form-label text-muted small fw-bold">Tipo de Transacción</label>
+                        <select th:field="*{tipo}" id="tipo" class="form-select" onchange="alternarCategoria()" required>
+                            <option value="GASTO" selected>Gasto Médico</option>
+                            <option value="APORTACION">Aportación a Fondos</option>
+                        </select>
+                    </div>
+
+                    <!-- Campo: Categoría Médica (Se oculta dinámicamente si es Aportación) -->
+                    <div class="mb-3" id="grupoCategoria">
+                        <label for="categoria" class="form-label text-muted small fw-bold">Categoría Médica</label>
+                        <select th:field="*{categoria.id}" id="categoria" class="form-select">
+                            <option value="" selected>Ninguna / No aplica</option>
+                            <option th:each="cat : ${categorias}" th:value="${cat.id}" th:text="${cat.nombre}"></option>
+                        </select>
+                    </div>
+
+                    <!-- Campo: Monto -->
+                    <div class="mb-3">
+                        <label for="monto" class="form-label text-muted small fw-bold">Monto ($)</label>
+                        <input type="number" step="0.01" min="0.01" th:field="*{monto}" id="monto" class="form-control" placeholder="0.00" required>
+                    </div>
+
+                    <!-- Campo: Descripción -->
+                    <div class="mb-3">
+                        <label for="descripcion" class="form-label text-muted small fw-bold">Descripción / Concepto</label>
+                        <textarea th:field="*{descripcion}" id="descripcion" class="form-control" rows="2" placeholder="Ej. Compra de paracetamol, consulta general..." required></textarea>
+                    </div>
+
+                </div>
+                <div class="modal-footer bg-light border-0 px-4">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary px-4">Guardar Registro</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- SCRIPT DINÁMICO PARA VALIDACIÓN DE INTERFAZ -->
+<script>
+    function alternarCategoria() {
+        const tipoElement = document.getElementById('tipo');
+        const grupoCategoria = document.getElementById('grupoCategoria');
+        const categoriaSelect = document.getElementById('categoria');
+
+        if (tipoElement.value === 'APORTACION') {
+            // Ocultar campo de categoría médica si es un ingreso ordinario
+            grupoCategoria.style.display = 'none';
+            categoriaSelect.value = ''; // Resetear el valor
+        } else {
+            // Mostrar si es un gasto médico
+            grupoCategoria.style.display = 'block';
+        }
+    }
+    // Ejecutar al cargar la página por si acaso
+    document.addEventListener("DOMContentLoaded", alternarCategoria);
+</script>
+</html>
