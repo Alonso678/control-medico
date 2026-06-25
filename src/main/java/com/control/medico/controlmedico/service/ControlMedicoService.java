@@ -17,6 +17,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import java.util.Optional;
+
 @Service
 public class ControlMedicoService {
 
@@ -95,4 +97,8 @@ public class ControlMedicoService {
         Pageable pageable = PageRequest.of(numeroPagina, 10);
         return movimientoRepository.findAllByOrderByFechaDescIdAsc(pageable);
     }
+
+    public Optional<Familiar> obtenerFamiliarPorId(Long id) {
+    return familiarRepository.findById(id);
+}
 }

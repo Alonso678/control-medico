@@ -14,9 +14,12 @@
             <a class="navbar-brand" href="/"><i class="bi bi-heart-pulse-fill me-2"></i>Control Médico Familiar</a>
             <div class="navbar-nav">
                 <a class="nav-link active" href="/">Dashboard</a>
-                <a class="nav-link" href="/reporte">Reporte Individual</a>
+                <button type="button" class="btn btn-outline-light shadow-sm ms-2" data-bs-toggle="modal"
+                    data-bs-target="#modalFiltroReporte">
+                    <i class="bi bi-file-earmark-pdf me-1"></i> Descargar Reporte Individual
+                </button>
             </div>
-        </div>
+            </div>
     </nav>
 
     <div class="container">
@@ -187,6 +190,33 @@
                 <div class="modal-footer bg-light border-0 px-4">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn btn-primary px-4">Guardar Registro</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL DE REPORTE INDIVIDUAL -->
+<div class="modal fade" id="modalFiltroReporte" tabindex="-1" aria-labelledby="modalFiltroReporteLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-dark text-white">
+                <h6 class="modal-title fw-bold" id="modalFiltroReporteLabel"><i class="bi bi-person-lines-fill me-2"></i>Seleccionar Familiar</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form th:action="@{/reporte}" method="get" target="_blank">
+                <div class="modal-body p-3">
+                    <div class="mb-3">
+                        <label for="familiarReporteId" class="form-label text-muted small fw-bold">Miembro del Grupo</label>
+                        <select name="familiarId" id="familiarReporteId" class="form-select form-select-sm" required>
+                            <option value="" disabled selected>Elige un familiar...</option>
+                            <option th:each="fam : ${familiares}" th:value="${fam.id}" th:text="${fam.nombre}"></option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0 p-2">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="submit" class="btn btn-dark btn-sm px-3">Descargar PDF</button>
                 </div>
             </form>
         </div>
