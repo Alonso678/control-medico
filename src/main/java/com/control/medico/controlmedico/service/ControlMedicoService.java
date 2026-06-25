@@ -28,7 +28,8 @@ public class ControlMedicoService {
 
     private final CategoriaRepository categoriaRepository;
 
-    ControlMedicoService(MovimientoRepository movimientoRepository, FamiliarRepository familiarRepository, CategoriaRepository categoriaRepository) {
+    // Constructor para Inyección de Dependencias
+    public ControlMedicoService(MovimientoRepository movimientoRepository, FamiliarRepository familiarRepository, CategoriaRepository categoriaRepository) {
         this.movimientoRepository = movimientoRepository;
         this.familiarRepository = familiarRepository;
         this.categoriaRepository = categoriaRepository;
@@ -49,10 +50,20 @@ public class ControlMedicoService {
     }
 
     public Movimiento registrarMovimiento(Movimiento movimiento) {
-        // Validación lógica: Si es aportación, no lleva categoría médica
-        if ("APORTACION".equals(movimiento.getTipo())) {
-            movimiento.setCategoria(null);
+        // Validamos si el tipo de movimiento es una aportación
+        if (movimiento.getTipo() != null && 
+           ("APORTACION".equalsIgnoreCase(movimiento.getTipo()) || "APORTACIÓN".equalsIgnoreCase(movimiento.getTipo()))) {
+            
+            movimiento.setTipo("APORTACION"); 
+            
+            // OBTENCIÓN DINÁMICA: Traemos el objeto Categoria directo de la BD
+            Categoria categoriaAportacion = categoriaRepository.findByNombreIgnoreCase("Aportaciones")
+                    .orElseThrow(() -> new RuntimeException("Error: La categoría 'Aportaciones' no existe en el catálogo."));
+            
+            // Setteamos el objeto recuperado (que ya contiene internamente su ID y Nombre de forma nativa)
+            movimiento.setCategoria(categoriaAportacion);
         }
+        
         return movimientoRepository.save(movimiento);
     }
 
