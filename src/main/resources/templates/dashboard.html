@@ -216,12 +216,37 @@
                 </div>
                 <div class="modal-footer bg-light border-0 p-2">
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
-                    <button type="submit" class="btn btn-dark btn-sm px-3">Descargar PDF</button>
+                
+                    <button type="submit" id="btnDescargarReporte" data-bs-dismiss="modal" class="btn btn-dark btn-sm px-3">Descargar
+                        PDF</button>
                 </div>
-            </form>
+                </form>
         </div>
     </div>
 </div>
+
+<!-- SCRIPT PARA CERRAR EL MODAL AL DESCARGAR EL REPORTE   -->
+<script>
+    document.getElementById('btnDescargarReporte').addEventListener('click', function() {
+        var modalElement = document.getElementById('modalFiltroReporte');
+        var modalInstance = bootstrap.Modal.getInstance(modalElement);
+        
+        if (modalInstance) {
+            // Le damos 100ms para que el navegador procese el submit del formulario hacia la pestaña nueva
+            setTimeout(function() {
+                modalInstance.hide();
+                
+                // Forzamos la eliminación de cualquier residuo oscuro en el fondo
+                const backdrop = document.querySelector('.modal-backdrop');
+                if (backdrop) {
+                    backdrop.remove();
+                    document.body.style.overflow = 'auto';
+                    document.body.style.paddingRight = '0px';
+                }
+            }, 100);
+        }
+    });
+</script>
 
 <!-- SCRIPT DINÁMICO PARA VALIDACIÓN DE INTERFAZ -->
 <script>
