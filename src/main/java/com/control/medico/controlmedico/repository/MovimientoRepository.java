@@ -12,6 +12,9 @@ import java.util.List;
 
 public interface MovimientoRepository extends JpaRepository<Movimiento, Long> {
 
+    @Query("SELECT SUM(m.monto) FROM Movimiento m WHERE m.tipo = 'GASTO' AND m.familia.id = :familiaId")
+    BigDecimal totalGastadoPorFamilia(@Param("familiaId") Long familiaId);
+
     // Cambiamos List por Page y añadimos el parámetro Pageable
     Page<Movimiento> findAllByOrderByFechaDescIdAsc(Pageable pageable);
 

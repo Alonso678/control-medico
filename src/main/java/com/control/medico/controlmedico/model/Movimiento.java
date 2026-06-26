@@ -48,4 +48,9 @@ public class Movimiento {
 
     @Column(columnDefinition = "TEXT")
     private String observaciones;
+
+    // ... dentro de tu clase Movimiento existente
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "familia_id")
+    private Familia familia;
 }

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control Médico Familiar - Acceso</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    
+    <style>
+        /* Definición de variables de color */
+        :root {
+            --primary-color: #0d6efd;
+            --accent-color: #0dcaf0;
+        }
+
+        body {
+            /* Fondo con degradado sutil superpuesto sobre una imagen médica profesional de alta calidad */
+            background: linear-gradient(135px, rgba(13, 110, 253, 0.65), rgba(13, 202, 240, 0.45)), 
+                        url('https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?q=80&w=2070') no-repeat center center fixed;
+            background-size: cover;
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* --- ANIMACIONES --- */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulseHeart {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        /* --- ESTILOS DE LA TARJETA --- */
+        .login-container {
+            animation: fadeInUp 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+
+        .login-card {
+            background: rgba(255, 255, 255, 0.90);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 20px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .login-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2) !important;
+        }
+
+        /* --- ICONO ANIMADO --- */
+        .brand-icon {
+            display: inline-block;
+            font-size: 3.5rem;
+            color: var(--primary-color);
+            animation: pulseHeart 2.5s infinite ease-in-out;
+        }
+
+        /* --- ESTILOS DE CAMPOS DE TEXTO --- */
+        .input-group-custom {
+            position: relative;
+        }
+
+        .input-group-custom .input-group-text {
+            background-color: transparent;
+            border-right: none;
+            color: #6c757d;
+            transition: color 0.3s ease;
+        }
+
+        .input-group-custom .form-control {
+            border-left: none;
+            transition: all 0.3s ease;
+        }
+
+        /* Animación de enfoque para los inputs */
+        .input-group-custom .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: none;
+        }
+
+        .input-group-custom .form-control:focus + .input-group-text,
+        .input-group-custom:focus-within .input-group-text {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        /* --- BOTÓN CON EFECTO DE GRADIENTE --- */
+        .btn-gradient {
+            background: linear-gradient(135px, var(--primary-color), #0a58ca);
+            border: none;
+            color: white;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-gradient:hover {
+            background: linear-gradient(135px, #0a58ca, #054198);
+            box-shadow: 0 8px 15px rgba(13, 110, 253, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .btn-gradient:active {
+            transform: translateY(1px);
+        }
+    </style>
+</head>
+<body class="d-flex align-items-center justify-content-center p-3">
+
+    <div class="container login-container" style="max-width: 430px;">
+        <div class="card login-card shadow-lg p-4 p-md-5">
+            <div class="card-body text-center">
+                
+                <div class="mb-3">
+                    <i class="bi bi-heart-pulse-fill brand-icon"></i>
+                </div>
+                
+                <h3 class="fw-bold text-dark mb-1">Control Médico</h3>
+                <p class="text-muted small mb-4">Plataforma de Gestión Familiar</p>
+
+                <div th:if="${param.error}" class="alert alert-danger p-2 small text-center rounded-3 border-0 animate__animated animate__shakeX" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i> Usuario o contraseña incorrectos.
+                </div>
+                <div th:if="${param.logout}" class="alert alert-success p-2 small text-center rounded-3 border-0" role="alert">
+                    <i class="bi bi-check-circle-fill me-1"></i> Sesión finalizada correctamente.
+                </div>
+
+                <form th:action="@{/login}" method="post" class="text-start mt-2">
+                    
+                    <div class="mb-3">
+                        <label for="username" class="form-label text-secondary small fw-semibold">Usuario</label>
+                        <div class="input-group input-group-custom shadow-sm rounded">
+                            <span class="input-group-text bg-white border-end-0"><i class="bi bi-person-fill"></i></span>
+                            <input type="text" id="username" name="username" class="form-control bg-white border-start-0 py-2" placeholder="Ingresa tu usuario" required autofocus>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="password" class="form-label text-secondary small fw-semibold">Contraseña</label>
+                        <div class="input-group input-group-custom shadow-sm rounded">
+                            <span class="input-group-text bg-white border-end-0"><i class="bi bi-lock-fill"></i></span>
+                            <input type="password" id="password" name="password" class="form-control bg-white border-start-0 py-2" placeholder="••••••••" required>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-gradient w-100 py-25 rounded-3 shadow-sm text-uppercase small">
+                        Entrar al Sistema <i class="bi bi-arrow-right-short ms-1 fs-5 align-middle"></i>
+                    </button>
+                </form>
+                
+                <div class="mt-4 pt-3 border-top border-light">
+                    <small class="text-muted">Desarrollado para el cuidado familiar &copy; 2026</small>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -3,6 +3,7 @@ package com.control.medico.controlmedico.service;
 import com.control.medico.controlmedico.model.Categoria;
 import com.control.medico.controlmedico.model.Familiar;
 import com.control.medico.controlmedico.model.Movimiento;
+import com.control.medico.controlmedico.model.TipoMembresia;
 import com.control.medico.controlmedico.repository.CategoriaRepository;
 import com.control.medico.controlmedico.repository.FamiliarRepository;
 import com.control.medico.controlmedico.repository.MovimientoRepository;
@@ -11,7 +12,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
@@ -50,20 +50,31 @@ public class ControlMedicoService {
     }
 
     public Movimiento registrarMovimiento(Movimiento movimiento) {
-        // Validamos si el tipo de movimiento es una aportación
-        if (movimiento.getTipo() != null && 
-           ("APORTACION".equalsIgnoreCase(movimiento.getTipo()) || "APORTACIÓN".equalsIgnoreCase(movimiento.getTipo()))) {
-            
-            movimiento.setTipo("APORTACION"); 
-            
-            // OBTENCIÓN DINÁMICA: Traemos el objeto Categoria directo de la BD
+        // 1. Obtener el usuario autenticado en Spring Security
+        String usernameActivo = org.springframework.security.core.context.SecurityContextHolder
+                .getContext().getAuthentication().getName();
+
+        Familiar usuarioLogueado = familiarRepository.findByUsername(usernameActivo)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado en la sesión actual"));
+
+        // 2. Forzar que el movimiento pertenezca estrictamente a la familia del usuario
+        // activo
+        movimiento.setFamilia(usuarioLogueado.getFamilia());
+
+        // 3. Validación lógica existente para Aportaciones
+        if (movimiento.getTipo() != null &&
+                ("APORTACION".equalsIgnoreCase(movimiento.getTipo())
+                        || "APORTACIÓN".equalsIgnoreCase(movimiento.getTipo()))) {
+
+            movimiento.setTipo("APORTACION");
+
+            // Obtención dinámica usando el repositorio de categorías que construimos
             Categoria categoriaAportacion = categoriaRepository.findByNombreIgnoreCase("Aportaciones")
-                    .orElseThrow(() -> new RuntimeException("Error: La categoría 'Aportaciones' no existe en el catálogo."));
-            
-            // Setteamos el objeto recuperado (que ya contiene internamente su ID y Nombre de forma nativa)
+                    .orElseThrow(() -> new RuntimeException("La categoría 'Aportaciones' no existe en el catálogo."));
+
             movimiento.setCategoria(categoriaAportacion);
         }
-        
+
         return movimientoRepository.save(movimiento);
     }
 
@@ -110,6 +121,11 @@ public class ControlMedicoService {
     }
 
     public Optional<Familiar> obtenerFamiliarPorId(Long id) {
-    return familiarRepository.findById(id);
-}
+        return familiarRepository.findById(id);
+    }
+
+    public long contarAportadoresPorFamilia(Long familiaId) {
+        // Importa tu Enum TipoMembresia si es necesario
+        return familiarRepository.countByFamiliaIdAndTipoMembresia(familiaId, TipoMembresia.APORTADOR);
+    }
 }

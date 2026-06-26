@@ -92,8 +92,19 @@ public class ControlMedicoController {
         BigDecimal totalGastosGlobal = resumenGlobal.get("totalGastado");
 
         // Cuota correspondiente: Total Gastos / 4
-        BigDecimal cuotaCorrespondiente = totalGastosGlobal.divide(new BigDecimal("4"), 2,
-                java.math.RoundingMode.HALF_UP);
+        /*
+         * BigDecimal cuotaCorrespondiente = totalGastosGlobal.divide(new
+         * BigDecimal("4"), 2,
+         * java.math.RoundingMode.HALF_UP);
+         */
+        // 1. Obtener cuántos miembros cooperan en ESTA familia en específico
+        long numeroAportadores = controlMedicoService.contarAportadoresPorFamilia(familiar.getFamilia().getId());
+        // 2. Si la familia tiene aportadores, dividimos el gasto entre el número real de ellos
+        BigDecimal cuotaCorrespondiente = BigDecimal.ZERO;
+        if (numeroAportadores > 0) {
+            cuotaCorrespondiente = totalGastosGlobal.divide(
+                    new BigDecimal(numeroAportadores), 2, java.math.RoundingMode.HALF_UP);
+        }
 
         // Aportaciones hechas por ESTE familiar individual
         Map<String, BigDecimal> resumenFamiliar = controlMedicoService.obtenerResumenFinancieroPorFamiliar(familiarId);
