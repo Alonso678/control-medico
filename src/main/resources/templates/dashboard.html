@@ -144,25 +144,114 @@
 </body>
 
 <!-- MODAL DE USUARIO ADMINISTRADOR -->
-<div sec:authorize="hasRole('ADMIN')" class="card border-0 shadow-sm p-4 mb-4">
-    <h5 class="fw-bold text-secondary mb-3"><i class="bi bi-person-plus-fill me-2"></i>Registrar Nuevo Miembro Familiar</h5>
-    <form th:action="@{/familiares/registrar}" method="post" class="row g-3">
-        <div class="col-md-6">
-            <label class="form-label small fw-bold text-muted">Nombre Completo</label>
-            <input type="text" name="nombre" class="form-control form-control-sm" placeholder="Ej. Juan Ortiz" required>
+<!-- Botón para abrir el Modal de Administración (Ponlo en tu Dashboard) -->
+<div class="d-flex justify-content-end mb-3">
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalGestionFamilia">
+        <i class="bi bi-people-fill me-1"></i> Administrar Familia
+    </button>
+</div>
+
+<div class="modal fade" id="modalGestionFamilia" tabindex="-1" aria-labelledby="modalGestionFamiliaLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+
+            <div class="modal-header bg-primary text-white rounded-top-4">
+                <h5 class="modal-title fw-bold" id="modalGestionFamiliaLabel">
+                    <i class="bi bi-gear-fill me-2"></i>Gestión de Miembros y Roles
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body p-4">
+                <form th:action="@{/familia/guardar}" method="post" class="card p-3 bg-light border-0 rounded-3 mb-4">
+                    <h6 class="fw-bold text-secondary mb-3"><i class="bi bi-person-plus-fill me-1"></i> Registrar / Editar Miembro</h6>
+                    <input type="hidden" id="miembroId" name="id">
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="nombreCompleto" class="form-label small fw-semibold text-muted">Nombre Completo</label>
+                            <input type="text" id="nombreCompleto" name="nombre" class="form-control"
+                                placeholder="Ej. Juan Ortiz" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="tipoMembresia" class="form-label small fw-semibold text-muted">Rol en el Control Médico</label>
+                            <select id="tipoMembresia" name="tipoMembresia" class="form-select" required>
+                                <option value="" disabled selected>Selecciona una opción...</option>
+                                <option value="BENEFICIARIO">Beneficiario (Padre/Madre)</option>
+                                <option value="APORTADOR">Aportador (Hijo/a)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="text-end mt-3">
+                        <button type="submit" class="btn btn-primary btn-sm px-4 rounded-3 fw-bold">
+                            <i class="bi bi-save me-1"></i> Guardar Miembro
+                        </button>
+                    </div>
+                </form>
+
+                <h6 class="fw-bold text-secondary mb-2"><i class="bi bi-list-task me-1"></i> Miembros de la Familia</h6>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle border-light">
+                        <thead class="table-light small text-uppercase">
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Tipo de Miembro</th>
+                                <th class="text-center">Acceso al Sistema</th>
+                                <th class="text-end">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody class="small">
+                            <tr th:each="miembro : ${familiares}">
+                                <td class="fw-bold text-dark" th:text="${miembro.nombre}">Juan Ortiz</td>
+                                <td>
+                                    <span th:if="${miembro.tipoMembresia != null}"
+                                        th:classappend="${miembro.tipoMembresia.toString() == 'BENEFICIARIO'} ? 'bg-info-subtle text-info border border-info' : 'bg-warning-subtle text-warning border border-warning'"
+                                        class="badge px-2.5 py-1.5 rounded-pill fw-bold">
+                                        <span th:text="${miembro.tipoMembresia}">APORTADOR</span>
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <span th:if="${miembro.administrador != null && miembro.administrador}"
+                                        class="badge bg-success px-2.5 py-1.5 rounded-pill shadow-sm">
+                                        <i class="bi bi-shield-check me-1"></i> Administrador Actual
+                                    </span>
+                                    
+                                    <form th:if="${miembro.administrador == null || !miembro.administrador}"
+                                        th:action="@{/familia/heredar/{id}(id=${miembro.id})}" method="post"
+                                        class="d-inline">
+                                        <button type="submit"
+                                            class="btn btn-link btn-sm p-0 text-decoration-none text-primary fw-semibold"
+                                            onclick="return confirm('¿Estás seguro de que deseas transferir el rol de Administrador a este miembro? Perderás el acceso de administración.')">
+                                            <i class="bi bi-arrow-left-right me-1"></i> Heredar Admin
+                                        </button>
+                                    </form>
+                                </td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        <button type="button" class="btn btn-outline-secondary border-0 btn-editar-miembro" th:data-id="${miembro.id}"
+                                            th:data-nombre="${miembro.nombre}" th:data-membresia="${miembro.tipoMembresia}" title="Editar">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </button>
+                                        <form th:if="${miembro.administrador == null || !miembro.administrador}"
+                                            th:action="@{/familia/eliminar/{id}(id=${miembro.id})}" method="post" class="d-inline"
+                                            th:onsubmit="return confirm('¿Estás seguro de que deseas eliminar a este miembro de la familia?');">
+                                    
+                                            <button type="submit" class="btn btn-outline-danger border-0 p-1" title="Eliminar">
+                                                <i class="bi bi-trash3-fill"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
         </div>
-        <div class="col-md-6">
-            <label class="form-label small fw-bold text-muted">Rol en el Control Médico</label>
-            <select name="tipoMembresia" class="form-select form-select-sm" required>
-                <option value="" disabled selected>Selecciona una etiqueta...</option>
-                <option value="APORTADOR">Aportador (Coopera con los gastos)</option>
-                <option value="BENEFICIARIO">Beneficiario (Recibe la atención médica)</option>
-            </select>
-        </div>
-        <div class="col-12 text-end">
-            <button type="submit" class="btn btn-primary btn-sm px-4 fw-bold shadow-sm">Guardar Miembro</button>
-        </div>
-    </form>
+    </div>
 </div>
 
 <!-- MODAL DE REGISTRO FINANCIERO -->
@@ -302,4 +391,33 @@
     // Ejecutar al cargar la página por si acaso
     document.addEventListener("DOMContentLoaded", alternarCategoria);
 </script>
+
+<!-- SCRIPT DINÁMICO PARA EDITAR GESTION DE MIEMBROS Y ROLES -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Escuchamos los clics en cualquier botón que tenga la clase 'btn-editar-miembro'
+        document.body.addEventListener('click', function (event) {
+            const boton = event.target.closest('.btn-editar-miembro');
+
+            if (boton) {
+                // Extraemos los datos de manera segura desde el DOM
+                const id = boton.getAttribute('data-id');
+                const nombre = boton.getAttribute('data-nombre');
+                const membresia = boton.getAttribute('data-membresia');
+
+                // Inyectamos los valores en los campos del formulario
+                document.getElementById('miembroId').value = id;
+                document.getElementById('nombreCompleto').value = nombre;
+                document.getElementById('tipoMembresia').value = membresia;
+
+                // Cambiamos visualmente el título del formulario CRUD
+                const tituloFormulario = document.querySelector('#modalGestionFamilia form h6');
+                if (tituloFormulario) {
+                    tituloFormulario.innerHTML = `<i class="bi bi-pencil-fill me-1"></i> Editar Miembro: ${nombre}`;
+                }
+            }
+        });
+    });
+</script>
+
 </html>

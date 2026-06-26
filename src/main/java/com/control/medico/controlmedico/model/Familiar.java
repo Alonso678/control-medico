@@ -47,4 +47,7 @@ public class Familiar {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "familia_id")
     private Familia familia; // Relación con la nueva tabla familias
+
+    @Column(name = "is_administrador")
+    private Boolean administrador = false;
 }

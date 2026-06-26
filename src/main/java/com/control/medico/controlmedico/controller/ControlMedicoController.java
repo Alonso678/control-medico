@@ -1,18 +1,23 @@
 package com.control.medico.controlmedico.controller;
 
+import com.control.medico.controlmedico.model.Familiar;
 import com.control.medico.controlmedico.model.Movimiento;
 import com.control.medico.controlmedico.service.ControlMedicoService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.data.domain.Page;
+import org.springframework.http.ResponseEntity;
 
 import java.math.BigDecimal;
 import java.util.Map;
 import java.util.List;
+import java.util.Optional;
 
 import com.lowagie.text.*;
 import com.lowagie.text.pdf.*;
@@ -56,9 +61,14 @@ public class ControlMedicoController {
 
         // 3. Objetos necesarios para el Modal de Registro
         model.addAttribute("movimiento", new Movimiento());
-        model.addAttribute("familiares", controlMedicoService.obtenerTodosLosFamiliares());
+
+        // ASIGNACIÓN CORRECTA EN VARIABLE LOCAL
+        List<Familiar> familiares = controlMedicoService.obtenerTodosLosFamiliares();
+        model.addAttribute("familiares", familiares);
+
         model.addAttribute("categorias", controlMedicoService.obtenerTodasLasCategorias());
 
+        System.out.println("Total familiares: " + familiares.size());
         return "dashboard";
     }
 
@@ -223,4 +233,18 @@ public class ControlMedicoController {
         controlMedicoService.eliminarMovimiento(id);
         return "redirect:/"; // Redirecciona al Dashboard para ver los cambios
     }
+
+    @GetMapping("/familia/buscar/{id}")
+    @ResponseBody // Importante para que devuelva el objeto como JSON y no busque una vista HTML
+    public ResponseEntity<Familiar> buscarFamiliarPorId(@PathVariable("id") Long id) {
+        // Reemplaza por el método real de tu servicio para buscar por ID
+        Optional<Familiar> familiarOpt = controlMedicoService.obtenerFamiliarPorId(id);
+
+        if (familiarOpt.isPresent()) {
+            return ResponseEntity.ok(familiarOpt.get());
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
 }
