@@ -19,12 +19,17 @@
                 <div class="navbar-nav me-3">
                     <a class="nav-link active" href="/">Dashboard</a>
                 </div>
-    
+                
                 <button type="button" class="btn btn-outline-light shadow-sm me-3" data-bs-toggle="modal"
-                    data-bs-target="#modalFiltroReporte">
+                    data-bs-target="#modalFiltroReporte" sec:authorize="hasRole('ADMIN')">
                     <i class="bi bi-file-earmark-pdf me-1"></i> Reporte Individual
                 </button>
-    
+                
+                <a th:href="@{/reporte/individual}" target="_blank" class="btn btn-outline-light shadow-sm me-3"
+                    sec:authorize="hasRole('FAMILIAR')">
+                    <i class="bi bi-file-earmark-pdf me-1"></i> Reporte Individual
+                </a>
+                
                 <div class="dropdown me-2" sec:authorize="isAuthenticated()">
                     <button
                         class="btn btn-light dropdown-toggle d-flex align-items-center gap-2 border shadow-sm px-3 py-1.5 rounded-pill"

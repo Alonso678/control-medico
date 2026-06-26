@@ -2,6 +2,7 @@ package com.control.medico.controlmedico.controller;
 
 import com.control.medico.controlmedico.model.Familiar;
 import com.control.medico.controlmedico.model.Movimiento;
+import com.control.medico.controlmedico.repository.FamiliarRepository;
 import com.control.medico.controlmedico.service.ControlMedicoService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -13,6 +14,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 
 import java.math.BigDecimal;
 import java.util.Map;
@@ -33,9 +36,12 @@ public class ControlMedicoController {
 
     private final ControlMedicoService controlMedicoService;
 
+    private final FamiliarRepository familiarRepository;
+
     // Inyección limpia por constructor (Cero Warnings)
-    public ControlMedicoController(ControlMedicoService controlMedicoService) {
+    public ControlMedicoController(ControlMedicoService controlMedicoService, FamiliarRepository familiarRepository) {
         this.controlMedicoService = controlMedicoService;
+        this.familiarRepository = familiarRepository;
     }
 
     /**
@@ -86,6 +92,40 @@ public class ControlMedicoController {
      * Modal de Reportes Individuales
      */
     @GetMapping("/reporte")
+    @PreAuthorize("hasRole('ADMIN')") // Blindaje por anotación
+    public void descargarReporteAdmin(@RequestParam("familiarId") Long familiarId,
+            HttpServletResponse response) {
+        // El administrador puede pasar el ID que sea desde el modal
+        try {
+			generarReportePDF(familiarId, response);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+    }
+
+    // ==========================================
+    // RUTA 2: EXCLUSIVA PARA EL FAMILIAR (SEGURO)
+    // ==========================================
+    @GetMapping("/reporte/individual")
+    @PreAuthorize("hasRole('FAMILIAR')")
+    public void descargarReportePropio(Authentication authentication,
+            HttpServletResponse response) {
+
+        // 1. Obtenemos el username string directamente de la sesión nativa
+        String usernameLogueado = authentication.getName();
+
+        // 2. Buscamos en la base de datos al familiar real usando tu repositorio
+        Familiar familiar = familiarRepository.findByUsername(usernameLogueado)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no válido"));
+
+        // 3. Generamos el PDF usando su ID real recuperado de la base de datos
+        try {
+			generarReportePDF(familiar.getId(), response);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+    }
+
     public void generarReportePDF(@RequestParam("familiarId") Long familiarId, HttpServletResponse response)
             throws Exception {
         // 1. Obtener datos clave de la base de datos
@@ -179,7 +219,7 @@ public class ControlMedicoController {
         tablaResumen.addCell(new PdfPCell(new Phrase("Total de Gastos Médicos del Grupo:", fontNormal)));
         tablaResumen.addCell(new PdfPCell(new Phrase("$" + totalGastosGlobal.toString(), fontNormal)));
 
-        tablaResumen.addCell(new PdfPCell(new Phrase("Cantidad que le corresponde aportar (Total / 4):", fontBold)));
+        tablaResumen.addCell(new PdfPCell(new Phrase("Cantidad que le corresponde aportar (Total / " + numeroAportadores + "):", fontBold)));
         tablaResumen.addCell(new PdfPCell(new Phrase("$" + cuotaCorrespondiente.toString(), fontBold)));
 
         tablaResumen.addCell(new PdfPCell(new Phrase("Total que has aportado a la fecha:", fontNormal)));
