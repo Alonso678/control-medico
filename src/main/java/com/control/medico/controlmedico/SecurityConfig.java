@@ -15,22 +15,22 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
-                        // 1. Permitimos el acceso 100% libre a los assets estáticos y explícitamente a
-                        // la ruta de login
-                        .requestMatchers("/css/**", "/js/**", "/images/**", "/login").permitAll()
-                        // 2. Cualquier otra petición al sistema requerirá autenticación obligatoria
+                        // 1. Las rutas del login y recursos estáticos son públicas
+                        .requestMatchers("/login", "/css/**", "/js/**").permitAll()
+
+                        // 2. Toda la gestión familiar (guardar, eliminar, heredar) queda EXCLUSIVA para
+                        // el ADMIN
+                        .requestMatchers("/familia/**").hasRole("ADMIN")
+
+                        // 3. El Dashboard principal y la descarga de reportes individuales son para
+                        // ambos roles
+                        .requestMatchers("/", "/reporte/**").hasAnyRole("ADMIN", "FAMILIAR")
+
+                        // Cualquier otra petición requiere autenticación básica
                         .anyRequest().authenticated())
-                .formLogin(form -> form
-                        .loginPage("/login") // Define nuestra vista personalizada
-                        .loginProcessingUrl("/login") // URL interna de Spring para procesar el POST de credenciales
-                        .defaultSuccessUrl("/", true) // Redirección al Dashboard tras iniciar sesión con éxito
-                        .failureUrl("/login?error=true") // Redirección si las credenciales fallan
-                        .permitAll() // Asegura que el flujo del formulario de login sea público
-                )
-                .logout(logout -> logout
-                        .logoutUrl("/logout")
-                        .logoutSuccessUrl("/login?logout=true")
-                        .permitAll());
+                // ... el resto de tu configuración de formLogin y logout
+                .formLogin(form -> form.loginPage("/login").permitAll())
+                .logout(logout -> logout.permitAll());
 
         return http.build();
     }

@@ -25,15 +25,40 @@
                     <i class="bi bi-file-earmark-pdf me-1"></i> Reporte Individual
                 </button>
     
-                <form th:action="@{/logout}" method="post" class="m-0">
-                    <button type="submit" class="btn btn-danger btn-sm shadow-sm d-flex align-items-center fw-bold px-3">
-                        <i class="bi bi-box-arrow-right me-1fs-6"></i> Salir
+                <div class="dropdown me-2" sec:authorize="isAuthenticated()">
+                    <button
+                        class="btn btn-light dropdown-toggle d-flex align-items-center gap-2 border shadow-sm px-3 py-1.5 rounded-pill"
+                        type="button" id="dropdownUserMenu" data-bs-toggle="dropdown" aria-expanded="false">
+    
+                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center"
+                            style="width: 24px; height: 24px;">
+                            <i class="bi bi-person-fill" style="font-size: 0.85rem;"></i>
+                        </div>
+    
+                        <span class="fw-semibold text-dark small" sec:authentication="name">Usuario</span>
                     </button>
-                </form>
+    
+                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" aria-labelledby="dropdownUserMenu">
+                        <li>
+                            <div class="dropdown-header border-bottom pb-2 mb-1">
+                                <small class="text-muted d-block">Roles:</small>
+                                <span class="badge bg-primary-subtle text-primary small text-wrap"
+                                    sec:authentication="principal.authorities">[ROLE]</span>
+                            </div>
+                        </li>
+                        <li>
+                            <form th:action="@{/logout}" method="post" class="m-0 px-2 py-1">
+                                <button type="submit"
+                                    class="dropdown-item text-danger rounded d-flex align-items-center gap-2 py-1.5 fw-bold small">
+                                    <i class="bi bi-box-arrow-right"></i> Salir del Sistema
+                                </button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
             </div>
         </div>
     </nav>
-    
     <div class="container">
         <div class="row text-center mb-4">
             <div class="col-md-4 mb-3">
@@ -66,7 +91,7 @@
         </div>
 
         <div class="card border-0 shadow-sm bg-white mb-5">
-            <button type="button" class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#modalRegistro">
+            <button type="button" class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#modalRegistro" sec:authorize="hasRole('ADMIN')">
                 <i class="bi bi-plus-lg me-1"></i> Registrar Movimiento
             </button>
             <div class="card-body px-4 pb-4">
@@ -80,7 +105,7 @@
                                 <th>Categoría Médica</th>
                                 <th>Descripción</th>
                                 <th class="text-end">Monto</th>
-                                <th class="text-center">Acciones</th>
+                                <th sec:authorize="hasRole('ADMIN')">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -102,7 +127,7 @@
                                     th:classappend="${mov.tipo == 'APORTACION' ? 'text-success fw-bold text-end' : 'text-danger fw-bold text-end'}">
                                     $0.00
                                 </td>
-                                <td class="text-center">
+                                <td sec:authorize="hasRole('ADMIN')" class="text-center">
                                     <form th:action="@{/movimientos/eliminar}" method="post"
                                         onsubmit="return confirm('¿Estás seguro de que deseas eliminar este movimiento financiero? Esta acción no se puede deshacer.');"
                                         style="display:inline;">
@@ -146,7 +171,8 @@
 <!-- MODAL DE USUARIO ADMINISTRADOR -->
 <!-- Botón para abrir el Modal de Administración (Ponlo en tu Dashboard) -->
 <div class="d-flex justify-content-end mb-3">
-    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalGestionFamilia">
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalGestionFamilia"
+        sec:authorize="hasRole('ADMIN')">
         <i class="bi bi-people-fill me-1"></i> Administrar Familia
     </button>
 </div>
