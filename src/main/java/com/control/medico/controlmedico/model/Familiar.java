@@ -36,9 +36,11 @@ public class Familiar {
 
     @Column(length = 100)
     private String password;
-
-    @Column(length = 30)
-    private String role; // ROLE_ADMIN o ROLE_FAMILIAR
+    
+    // Agregar la relación hacia el nuevo objeto Rol:
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "role_id")
+    private Rol role;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "tipo_membresia", length = 20, nullable = false)

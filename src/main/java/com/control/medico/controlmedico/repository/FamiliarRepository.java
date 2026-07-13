@@ -17,6 +17,6 @@ public interface FamiliarRepository extends JpaRepository<Familiar, Long> {
     long countByFamiliaIdAndTipoMembresia(Long familiaId, TipoMembresia tipoMembresia);
 
     @Modifying
-    @Query("UPDATE Familiar f SET f.role = 'ROLE_FAMILIAR' WHERE f.role = 'ROLE_ADMIN'")
+    @Query("UPDATE Familiar f SET f.role = (SELECT r FROM Rol r WHERE r.descripcion = 'ROLE_FAMILIAR') WHERE f.role.descripcion = 'ROLE_ADMIN'")
     void quitarAdministradorActual();
 }

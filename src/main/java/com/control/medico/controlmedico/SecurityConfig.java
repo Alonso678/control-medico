@@ -18,18 +18,21 @@ public class SecurityConfig {
                         // 1. Las rutas del login y recursos estáticos son públicas
                         .requestMatchers("/login", "/css/**", "/js/**").permitAll()
 
-                        // 2. Toda la gestión familiar (guardar, eliminar, heredar) queda EXCLUSIVA para
-                        // el ADMIN
+                        // 2. Toda la gestión familiar (guardar, eliminar, heredar) queda EXCLUSIVA para el ADMIN
                         .requestMatchers("/familia/**").hasRole("ADMIN")
 
-                        // 3. El Dashboard principal y la descarga de reportes individuales son para
-                        // ambos roles
+                        // 3. El Dashboard principal y la descarga de reportes individuales son para ambos roles
                         .requestMatchers("/", "/reporte/**").hasAnyRole("ADMIN", "FAMILIAR")
 
                         // Cualquier otra petición requiere autenticación básica
                         .anyRequest().authenticated())
-                // ... el resto de tu configuración de formLogin y logout
-                .formLogin(form -> form.loginPage("/login").permitAll())
+                
+                // Configuración del Formulario de Login con la redirección integrada
+                .formLogin(form -> form
+                        .loginPage("/login")
+                        .defaultSuccessUrl("/", true) // <-- AJUSTE CLAVE: Fuerza a Spring a ir al dashboard '/' al logearse con éxito
+                        .permitAll())
+                
                 .logout(logout -> logout.permitAll());
 
         return http.build();
