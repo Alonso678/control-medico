@@ -4,287 +4,95 @@ import com.control.medico.controlmedico.model.Familiar;
 import com.control.medico.controlmedico.model.Movimiento;
 import com.control.medico.controlmedico.repository.FamiliarRepository;
 import com.control.medico.controlmedico.service.ControlMedicoService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.data.domain.Page;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
-import java.util.Map;
-import java.util.List;
-import java.util.Optional;
-
-import com.lowagie.text.*;
-import com.lowagie.text.pdf.*;
-import jakarta.servlet.http.HttpServletResponse;
-
-import java.awt.Color;
-import java.io.ByteArrayOutputStream;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
+import java.util.Set;
 
 @Controller
 public class ControlMedicoController {
 
+    private static final Logger log = LoggerFactory.getLogger(ControlMedicoController.class);
     private final ControlMedicoService controlMedicoService;
-
     private final FamiliarRepository familiarRepository;
 
-    // Inyección limpia por constructor (Cero Warnings)
     public ControlMedicoController(ControlMedicoService controlMedicoService, FamiliarRepository familiarRepository) {
         this.controlMedicoService = controlMedicoService;
         this.familiarRepository = familiarRepository;
     }
 
-    /**
-     * Dashboard Principal: Muestra balances generales, historial completo
-     * y carga los objetos necesarios para el modal de registro.
-     */
     @GetMapping("/")
-    public String dashboard(@RequestParam(value = "page", defaultValue = "0") int page, Model model) {
-        // 1. Obtener sumatorias globales (Estas no se paginan, se quedan igual)
-        Map<String, BigDecimal> resumen = controlMedicoService.obtenerResumenFinancieroGlobal();
-        model.addAttribute("totalAportado", resumen.get("totalAportado"));
-        model.addAttribute("totalGastado", resumen.get("totalGastado"));
-        model.addAttribute("balanceDisponible", resumen.get("balanceDisponible"));
+    public String dashboard(Authentication authentication, @RequestParam(value = "page", defaultValue = "0") int page, Model model) {
+        log.info("[LOG-DASHBOARD] ──> Petición recibida en ruta raíz (/)");
 
-        // 2. Obtener la página de movimientos solicitada (de 20 en 20)
-        Page<Movimiento> paginaMovimientos = controlMedicoService.obtenerTodosLosMovimientos(page);
+        if (authentication == null) {
+            log.warn("[LOG-DASHBOARD] ⚠️ La autenticación es NULL. El usuario no está firmado.");
+            return "redirect:/login";
+        }
 
-        // Pasamos el contenido de la página y los datos de control de paginación a la
-        // vista
+        String usernameLogueado = authentication.getName();
+        Set<String> roles = AuthorityUtils.authorityListToSet(authentication.getAuthorities());
+        
+        log.info("[LOG-DASHBOARD] 👤 Usuario firmado: '{}'", usernameLogueado);
+        log.info("[LOG-DASHBOARD] 🔑 Roles detectados en el token de sesión: {}", roles);
+
+        // 1. Desvío inmediato si es SYS_ADMIN
+        if (roles.contains("ROLE_SYS_ADMIN")) {
+            log.info("[LOG-DASHBOARD] 🔀 Detectado ROLE_SYS_ADMIN. Redireccionando a /sys-admin/dashboard");
+            return "redirect:/sys-admin/dashboard";
+        }
+
+        // 2. Localizar datos del inquilino
+        log.info("[LOG-DASHBOARD] 🔍 Buscando datos del familiar para vincular Multi-Tenant...");
+        Familiar familiar = familiarRepository.findByUsername(usernameLogueado)
+                .orElseThrow(() -> {
+                    log.error("[LOG-DASHBOARD] ❌ ERROR CRÍTICO: El usuario logueado '{}' no se encuentra en la tabla familiar.", usernameLogueado);
+                    return new RuntimeException("Usuario no encontrado en la sesión");
+                });
+
+        if (familiar.getFamilia() == null) {
+            log.error("[LOG-DASHBOARD] ❌ ERROR CRÍTICO: El familiar '{}' no tiene asignada ninguna Familia en la BD.", usernameLogueado);
+            throw new RuntimeException("El usuario no pertenece a ninguna familia.");
+        }
+
+        Long familiaId = familiar.getFamilia().getId();
+        log.info("[LOG-DASHBOARD] 🏠 Multi-Tenant Activo. Familia ID vinculada: {}", familiaId);
+
+        // 3. Cálculos Financieros
+        log.info("[LOG-DASHBOARD] 📊 Ejecutando sumatorias financieras por inquilino...");
+        BigDecimal totalAportado = controlMedicoService.calcularTotalAportado(familiaId);
+        BigDecimal totalGastado = controlMedicoService.calcularTotalGastado(familiaId);
+        BigDecimal balanceDisponible = controlMedicoService.calcularBalanceDisponible(familiaId);
+        BigDecimal cuotaFamiliar = controlMedicoService.calcularCuotaFamiliar(familiaId);
+
+        log.info("[LOG-DASHBOARD] 💰 Totales calculados -> Aportado: {}, Gastado: {}, Balance: {}", 
+                 totalAportado, totalGastado, balanceDisponible);
+
+        // 4. Paginación
+        log.info("[LOG-DASHBOARD] 📄 Solicitando movimientos de la familia. Página: {}", page);
+        Page<Movimiento> paginaMovimientos = controlMedicoService.obtenerMovimientosPorFamiliaPaginado(familiaId, page);
+        log.info("[LOG-DASHBOARD] 📦 Movimientos recuperados: {}. Total páginas: {}", 
+                 paginaMovimientos.getNumberOfElements(), paginaMovimientos.getTotalPages());
+
+        // Inyección al modelo Thymeleaf
+        model.addAttribute("totalAportado", totalAportado);
+        model.addAttribute("totalGastado", totalGastado);
+        model.addAttribute("balanceDisponible", balanceDisponible);
+        model.addAttribute("cuotaFamiliar", cuotaFamiliar);
         model.addAttribute("movimientos", paginaMovimientos.getContent());
-        model.addAttribute("paginaActual", page);
-        model.addAttribute("totalPaginas", paginaMovimientos.getTotalPages());
+        model.addAttribute("currentPage", page);
+        model.addAttribute("familias", paginaMovimientos); 
+        model.addAttribute("familiar", familiar);
+        model.addAttribute("nuevoMovimiento", new Movimiento());
 
-        // 3. Objetos necesarios para el Modal de Registro
-        model.addAttribute("movimiento", new Movimiento());
-
-        // ASIGNACIÓN CORRECTA EN VARIABLE LOCAL
-        List<Familiar> familiares = controlMedicoService.obtenerTodosLosFamiliares();
-        model.addAttribute("familiares", familiares);
-
-        model.addAttribute("categorias", controlMedicoService.obtenerTodasLasCategorias());
-
-        System.out.println("Total familiares: " + familiares.size());
+        log.info("[LOG-DASHBOARD] ✔️ Todo correcto. Renderizando vista 'dashboard.html'");
         return "dashboard";
     }
-
-    /**
-     * Procesa el envío del formulario del nuevo movimiento (vía Modal o formulario
-     * externo)
-     */
-    @PostMapping("/movimientos/guardar")
-    public String guardarMovimiento(@ModelAttribute("movimiento") Movimiento movimiento) {
-        controlMedicoService.registrarMovimiento(movimiento);
-        return "redirect:/"; // Redirecciona de vuelta al tablero principal refrescando los datos
-    }
-
-    /**
-     * Modal de Reportes Individuales
-     */
-    @GetMapping("/reporte")
-    @PreAuthorize("hasRole('ADMIN')") // Blindaje por anotación
-    public void descargarReporteAdmin(@RequestParam("familiarId") Long familiarId,
-            HttpServletResponse response) {
-        // El administrador puede pasar el ID que sea desde el modal
-        try {
-			generarReportePDF(familiarId, response);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-    }
-
-    // ==========================================
-    // RUTA 2: EXCLUSIVA PARA EL FAMILIAR (SEGURO)
-    // ==========================================
-    @GetMapping("/reporte/individual")
-    @PreAuthorize("hasRole('FAMILIAR')")
-    public void descargarReportePropio(Authentication authentication,
-            HttpServletResponse response) {
-
-        // 1. Obtenemos el username string directamente de la sesión nativa
-        String usernameLogueado = authentication.getName();
-
-        // 2. Buscamos en la base de datos al familiar real usando tu repositorio
-        Familiar familiar = familiarRepository.findByUsername(usernameLogueado)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no válido"));
-
-        // 3. Generamos el PDF usando su ID real recuperado de la base de datos
-        try {
-			generarReportePDF(familiar.getId(), response);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-    }
-
-    public void generarReportePDF(@RequestParam("familiarId") Long familiarId, HttpServletResponse response)
-            throws Exception {
-        // 1. Obtener datos clave de la base de datos
-        var familiarOpt = controlMedicoService.obtenerFamiliarPorId(familiarId); // Asegúrate de tener este método en tu
-                                                                                 // service o búscalo por repo
-        if (familiarOpt.isEmpty()) {
-            response.sendRedirect("/?error=FamiliarNoEncontrado");
-            return;
-        }
-        var familiar = familiarOpt.get();
-
-        // 2. Cálculos Financieros del Negocio
-        Map<String, BigDecimal> resumenGlobal = controlMedicoService.obtenerResumenFinancieroGlobal();
-        BigDecimal totalGastosGlobal = resumenGlobal.get("totalGastado");
-
-        // Cuota correspondiente: Total Gastos / 4
-        /*
-         * BigDecimal cuotaCorrespondiente = totalGastosGlobal.divide(new
-         * BigDecimal("4"), 2,
-         * java.math.RoundingMode.HALF_UP);
-         */
-        // 1. Obtener cuántos miembros cooperan en ESTA familia en específico
-        long numeroAportadores = controlMedicoService.contarAportadoresPorFamilia(familiar.getFamilia().getId());
-        // 2. Si la familia tiene aportadores, dividimos el gasto entre el número real de ellos
-        BigDecimal cuotaCorrespondiente = BigDecimal.ZERO;
-        if (numeroAportadores > 0) {
-            cuotaCorrespondiente = totalGastosGlobal.divide(
-                    new BigDecimal(numeroAportadores), 2, java.math.RoundingMode.HALF_UP);
-        }
-
-        // Aportaciones hechas por ESTE familiar individual
-        Map<String, BigDecimal> resumenFamiliar = controlMedicoService.obtenerResumenFinancieroPorFamiliar(familiarId);
-        BigDecimal totalAportadoPorFamiliar = resumenFamiliar.get("aportado");
-
-        // Calcular si tiene saldo faltante
-        BigDecimal faltante = cuotaCorrespondiente.subtract(totalAportadoPorFamiliar);
-        if (faltante.compareTo(BigDecimal.ZERO) < 0) {
-            faltante = BigDecimal.ZERO; // Si aportó de más, el faltante es 0
-        }
-
-        List<Movimiento> aportacionesFamiliar = controlMedicoService.obtenerMovimientosPorFamiliar(familiarId)
-                .stream()
-                .filter(m -> m.getTipo().toString().equals("APORTACION"))
-                .toList();
-
-        // 3. Configurar Cabeceras de Respuesta para Descarga de Archivo
-        response.setContentType("application/pdf");
-        String fechaHoy = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-        String cleanNombre = familiar.getNombre().replaceAll("\\s+", "_");
-        response.setHeader("Content-Disposition",
-                "attachment; filename=Reporte_" + cleanNombre + "_" + fechaHoy + ".pdf");
-
-        // 4. Construcción del documento PDF usando OpenPDF
-        Document document = new Document(PageSize.A4, 36, 36, 36, 36);
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        PdfWriter.getInstance(document, baos);
-
-        document.open();
-
-        // Fuentes estilizadas
-        Font fontTitulo = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18, Color.DARK_GRAY);
-        Font fontSub = FontFactory.getFont(FontFactory.HELVETICA, 10, Color.GRAY);
-        Font fontSeccion = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12, Color.BLACK);
-        Font fontBold = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10, Color.BLACK);
-        Font fontNormal = FontFactory.getFont(FontFactory.HELVETICA, 10, Color.BLACK);
-
-        // Encabezado
-        Paragraph titulo = new Paragraph("REPORTE INDIVIDUAL - CONTROL MÉDICO", fontTitulo);
-        titulo.setAlignment(Element.ALIGN_CENTER);
-        document.add(titulo);
-
-        Paragraph subtitulo = new Paragraph(
-                "Fecha de emisión (HOY): " + LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
-                fontSub);
-        subtitulo.setAlignment(Element.ALIGN_CENTER);
-        subtitulo.setSpacingAfter(20);
-        document.add(subtitulo);
-
-        // Información del Familiar
-        document.add(new Paragraph("Reporte Solicitado por: " + familiar.getNombre(), fontSeccion));
-        document.add(new Paragraph("__________________________________________________________________\n\n", fontSub));
-
-        // Tabla de Resumen Financiero Matemático
-        PdfPTable tablaResumen = new PdfPTable(2);
-        tablaResumen.setWidthPercentage(100);
-        tablaResumen.setSpacingAfter(20);
-
-        tablaResumen.addCell(new PdfPCell(new Phrase("Concepto Global", fontBold)));
-        tablaResumen.addCell(new PdfPCell(new Phrase("Monto ($)", fontBold)));
-
-        tablaResumen.addCell(new PdfPCell(new Phrase("Total de Gastos Médicos del Grupo:", fontNormal)));
-        tablaResumen.addCell(new PdfPCell(new Phrase("$" + totalGastosGlobal.toString(), fontNormal)));
-
-        tablaResumen.addCell(new PdfPCell(new Phrase("Cantidad que le corresponde aportar (Total / " + numeroAportadores + "):", fontBold)));
-        tablaResumen.addCell(new PdfPCell(new Phrase("$" + cuotaCorrespondiente.toString(), fontBold)));
-
-        tablaResumen.addCell(new PdfPCell(new Phrase("Total que has aportado a la fecha:", fontNormal)));
-        tablaResumen.addCell(new PdfPCell(new Phrase("$" + totalAportadoPorFamiliar.toString(), fontNormal)));
-
-        PdfPCell celdaFaltanteTxt = new PdfPCell(new Phrase("CANTIDAD FALTANTE POR COMPLETAR:", fontBold));
-        celdaFaltanteTxt.setBackgroundColor(new Color(255, 235, 235));
-        PdfPCell celdaFaltanteNum = new PdfPCell(new Phrase("$" + faltante.toString(), fontBold));
-        celdaFaltanteNum.setBackgroundColor(new Color(255, 235, 235));
-
-        tablaResumen.addCell(celdaFaltanteTxt);
-        tablaResumen.addCell(celdaFaltanteNum);
-
-        document.add(tablaResumen);
-
-        // Desglose de Aportaciones Realizadas
-        document.add(new Paragraph("HISTORIAL DE APORTACIONES RECAUDADAS", fontSeccion));
-        document.add(new Paragraph(" ", fontNormal));
-
-        PdfPTable tablaAportaciones = new PdfPTable(3);
-        tablaAportaciones.setWidthPercentage(100);
-
-        tablaAportaciones.addCell(new PdfPCell(new Phrase("Fecha", fontBold)));
-        tablaAportaciones.addCell(new PdfPCell(new Phrase("Descripción", fontBold)));
-        tablaAportaciones.addCell(new PdfPCell(new Phrase("Monto Aportado", fontBold)));
-
-        if (aportacionesFamiliar.isEmpty()) {
-            PdfPCell vacio = new PdfPCell(
-                    new Phrase("No se registran aportaciones de fondos asignadas a este familiar.", fontNormal));
-            vacio.setColspan(3);
-            vacio.setHorizontalAlignment(Element.ALIGN_CENTER);
-            tablaAportaciones.addCell(vacio);
-        } else {
-            for (Movimiento mov : aportacionesFamiliar) {
-                tablaAportaciones.addCell(new PdfPCell(new Phrase(mov.getFecha().toString(), fontNormal)));
-                tablaAportaciones.addCell(new PdfPCell(new Phrase(mov.getDescripcion()))); 
-                tablaAportaciones.addCell(new PdfPCell(new Phrase("$" + mov.getMonto().toString(), fontNormal)));
-            }
-        }
-
-        document.add(tablaAportaciones);
-        document.close();
-
-        // Enviar el stream al canal de respuesta de red
-        response.getOutputStream().write(baos.toByteArray());
-        response.getOutputStream().flush();
-    }
-
-    @PostMapping("/movimientos/eliminar")
-    public String eliminarMovimiento(@RequestParam("id") Long id) {
-        controlMedicoService.eliminarMovimiento(id);
-        return "redirect:/"; // Redirecciona al Dashboard para ver los cambios
-    }
-
-    @GetMapping("/familia/buscar/{id}")
-    @ResponseBody // Importante para que devuelva el objeto como JSON y no busque una vista HTML
-    public ResponseEntity<Familiar> buscarFamiliarPorId(@PathVariable("id") Long id) {
-        // Reemplaza por el método real de tu servicio para buscar por ID
-        Optional<Familiar> familiarOpt = controlMedicoService.obtenerFamiliarPorId(id);
-
-        if (familiarOpt.isPresent()) {
-            return ResponseEntity.ok(familiarOpt.get());
-        } else {
-            return ResponseEntity.notFound().build();
-        }
-    }
-
 }

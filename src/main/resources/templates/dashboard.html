@@ -1,454 +1,127 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" 
-      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" 
-      lang="es">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control Médico Familiar</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <title>Suite SYS_ADMIN - Control Médico Global</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #f4f7f6;
+        }
+        .navbar-custom {
+            background: linear-gradient(135px, #1e3c72 0%, #2a5298 100%);
+        }
+        .card-counter {
+            border-left: 5px solid #1e3c72;
+            transition: transform 0.2s;
+        }
+        .card-counter:hover {
+            transform: translateY(-3px);
+        }
+    </style>
 </head>
-<body class="bg-light">
+<body>
 
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm mb-4">
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom shadow-sm mb-4">
         <div class="container">
-            <a class="navbar-brand" href="/"><i class="bi bi-heart-pulse-fill me-2"></i>Control Médico Familiar</a>
-    
-            <div class="d-flex align-items-center ms-auto">
-                <div class="navbar-nav me-3">
-                    <a class="nav-link active" href="/">Dashboard</a>
+            <a class="navbar-brand d-flex align-items-center" href="#">
+                <i class="bi bi-shield-lock-fill me-2 fs-3 text-warning"></i>
+                <div>
+                    <span class="fw-bold d-block">SYS_ADMIN Suite</span>
+                    <small style="font-size: 0.75rem; opacity: 0.8;">Panel de Control Multi-tenant</small>
                 </div>
-                
-                <button type="button" class="btn btn-outline-light shadow-sm me-3" data-bs-toggle="modal"
-                    data-bs-target="#modalFiltroReporte" sec:authorize="hasRole('ADMIN')">
-                    <i class="bi bi-file-earmark-pdf me-1"></i> Reporte Individual
-                </button>
-                
-                <a th:href="@{/reporte/individual}" target="_blank" class="btn btn-outline-light shadow-sm me-3"
-                    sec:authorize="hasRole('FAMILIAR')">
-                    <i class="bi bi-file-earmark-pdf me-1"></i> Reporte Individual
-                </a>
-                
-                <div class="dropdown me-2" sec:authorize="isAuthenticated()">
-                    <button
-                        class="btn btn-light dropdown-toggle d-flex align-items-center gap-2 border shadow-sm px-3 py-1.5 rounded-pill"
-                        type="button" id="dropdownUserMenu" data-bs-toggle="dropdown" aria-expanded="false">
-    
-                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center"
-                            style="width: 24px; height: 24px;">
-                            <i class="bi bi-person-fill" style="font-size: 0.85rem;"></i>
-                        </div>
-    
-                        <span class="fw-semibold text-dark small" sec:authentication="name">Usuario</span>
+            </a>
+            <div class="d-flex align-items-center">
+                <span class="text-white me-3" sec:authentication="name">SuperUsuario</span>
+                <form th:action="@{/logout}" method="post" class="m-0">
+                    <button type="submit" class="btn btn-outline-light btn-sm">
+                        <i class="bi bi-box-arrow-right me-1"></i> Salir
                     </button>
-    
-                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" aria-labelledby="dropdownUserMenu">
-                        <li>
-                            <div class="dropdown-header border-bottom pb-2 mb-1">
-                                <small class="text-muted d-block">Roles:</small>
-                                <span class="badge bg-primary-subtle text-primary small text-wrap"
-                                    sec:authentication="principal.authorities">[ROLE]</span>
-                            </div>
-                        </li>
-                        <li>
-                            <form th:action="@{/logout}" method="post" class="m-0 px-2 py-1">
-                                <button type="submit"
-                                    class="dropdown-item text-danger rounded d-flex align-items-center gap-2 py-1.5 fw-bold small">
-                                    <i class="bi bi-box-arrow-right"></i> Salir del Sistema
-                                </button>
-                            </form>
-                        </li>
-                    </ul>
-                </div>
+                </form>
             </div>
         </div>
     </nav>
+
     <div class="container">
-        <div class="row text-center mb-4">
-            <div class="col-md-4 mb-3">
-                <div class="card border-0 shadow-sm bg-white h-100">
-                    <div class="card-body">
-                        <div class="text-success mb-2"><i class="bi bi-cash-coin fs-1"></i></div>
-                        <h6 class="card-title text-muted text-uppercase small">Total Aportado</h6>
-                        <h3 class="card-text fw-bold text-success" th:text="${'$' + #numbers.formatDecimal(totalAportado, 1, 'DEFAULT', 2, 'DEFAULT')}">$0.00</h3>
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card shadow-sm border-0 bg-white p-4 d-flex flex-row justify-content-between align-items-center">
+                    <div>
+                        <h2 class="text-dark fw-bold mb-1">Consola de Control de Familias</h2>
+                        <p class="text-muted mb-0">Administración de membresías, asignación de administradores y aislamiento de inquilinos.</p>
                     </div>
-                </div>
-            </div>
-            <div class="col-md-4 mb-3">
-                <div class="card border-0 shadow-sm bg-white h-100">
-                    <div class="card-body">
-                        <div class="text-danger mb-2"><i class="bi bi-cart-dash fs-1"></i></div>
-                        <h6 class="card-title text-muted text-uppercase small">Total Gastado</h6>
-                        <h3 class="card-text fw-bold text-danger" th:text="${'$' + #numbers.formatDecimal(totalGastado, 1, 'DEFAULT', 2, 'DEFAULT')}">$0.00</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4 mb-3">
-                <div class="card border-0 shadow-sm text-white bg-dark h-100">
-                    <div class="card-body">
-                        <div class="text-warning mb-2"><i class="bi bi-wallet2 fs-1"></i></div>
-                        <h6 class="card-title text-light text-uppercase small">Fondos Disponibles</h6>
-                        <h3 class="card-text fw-bold text-warning" th:text="${'$' + #numbers.formatDecimal(balanceDisponible, 1, 'DEFAULT', 2, 'DEFAULT')}">$0.00</h3>
+                    <div class="badge bg-primary fs-6 py-2 px-3">
+                        <i class="bi bi-building me-1"></i> <span th:text="${familias.totalElements}">0</span> Familias de Alta
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="card border-0 shadow-sm bg-white mb-5">
-            <button type="button" class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#modalRegistro" sec:authorize="hasRole('ADMIN')">
-                <i class="bi bi-plus-lg me-1"></i> Registrar Movimiento
-            </button>
-            <div class="card-body px-4 pb-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle">
-                        <thead class="table-light text-muted">
+                    <table class="table table-hover align-middle mb-0 text-center">
+                        <thead class="table-light">
                             <tr>
-                                <th>Fecha</th>
-                                <th>Familiar</th>
-                                <th>Tipo</th>
-                                <th>Categoría Médica</th>
-                                <th>Descripción</th>
-                                <th class="text-end">Monto</th>
-                                <th sec:authorize="hasRole('ADMIN')">Acciones</th>
+                                <th>ID Familia</th>
+                                <th>Nombre del Inquilino / Familia</th>
+                                <th>Fecha de Alta</th>
+                                <th>Estado Operativo</th>
+                                <th>Acciones Administrativas</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr th:if="${#lists.isEmpty(movimientos)}">
-                                <td colspan="6" class="text-center text-muted py-4">No hay movimientos financieros capturados todavía.</td>
-                            </tr>
-                            <tr th:each="mov : ${movimientos}">
-                                <td th:text="${mov.fecha}">2026-01-01</td>
-                                <td th:text="${mov.familiar.nombre}" class="fw-semibold text-dark">Juan Perez</td>
+                            <tr th:each="familia : ${familias.content}">
+                                <td class="fw-bold text-secondary" th:text="${familia.id}">1</td>
                                 <td>
-                                    <span th:if="${mov.tipo == 'APORTACION'}"
-                                        class="badge bg-success-subtle text-success border border-success-subtle rounded-pill">Aportación</span>
-                                    <span th:if="${mov.tipo == 'GASTO'}"
-                                        class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill">Gasto</span>
+                                    <span class="fw-semibold text-primary fs-5" th:text="${familia.nombre}">Familia Pérez</span>
                                 </td>
-                                <td th:text="${mov.categoria != null ? mov.categoria.nombre : '—'}" class="text-muted">Consulta</td>
-                                <td th:text="${mov.descripcion}">Compra de medicamento base</td>
-                                <td th:text="${'$' + #numbers.formatDecimal(mov.monto, 1, 'DEFAULT', 2, 'DEFAULT')}"
-                                    th:classappend="${mov.tipo == 'APORTACION' ? 'text-success fw-bold text-end' : 'text-danger fw-bold text-end'}">
-                                    $0.00
-                                </td>
-                                <td sec:authorize="hasRole('ADMIN')" class="text-center">
-                                    <form th:action="@{/movimientos/eliminar}" method="post"
-                                        onsubmit="return confirm('¿Estás seguro de que deseas eliminar este movimiento financiero? Esta acción no se puede deshacer.');"
-                                        style="display:inline;">
-                                        <input type="hidden" name="id" th:value="${mov.id}" />
-                                        <button type="submit" class="btn btn-link text-danger p-0 m-0 align-baseline" title="Eliminar Registro">
-                                            <i class="bi bi-trash3-fill fs-5"></i>
-                                        </button>
-                                    </form>
-                                </td>
-                            </tr>
-                            </tbody>
-                    </table>
-                </div>
-                </div> <div th:if="${totalPaginas > 1}" class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
-                    <div class="text-muted small">
-                        Página <span class="fw-bold" th:text="${paginaActual + 1}">1</span> de <span class="fw-bold" th:text="${totalPaginas}">5</span>
-                    </div>
-                    <nav aria-label="Navegación de historial">
-                        <ul class="pagination pagination-sm mb-0">
-                            <li class="page-item" th:classappend="${paginaActual == 0} ? 'disabled'">
-                                <a class="page-link" th:href="@{/(page=${paginaActual - 1})}" tabindex="-1">Anterior</a>
-                            </li>
-                            
-                            <li class="page-item" th:each="i : ${#numbers.sequence(0, totalPaginas - 1)}" th:classappend="${i == paginaActual} ? 'active'">
-                                <a class="page-link" th:href="@{/(page=${i})}" th:text="${i + 1}">1</a>
-                            </li>
-                            
-                            <li class="page-item" th:classappend="${paginaActual + 1 == totalPaginas} ? 'disabled'">
-                                <a class="page-link" th:href="@{/(page=${paginaActual + 1})}">Siguiente</a>
-                            </li>
-                        </ul>
-                    </nav>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-
-<!-- MODAL DE USUARIO ADMINISTRADOR -->
-<!-- Botón para abrir el Modal de Administración (Ponlo en tu Dashboard) -->
-<div class="d-flex justify-content-end mb-3">
-    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalGestionFamilia"
-        sec:authorize="hasRole('ADMIN')">
-        <i class="bi bi-people-fill me-1"></i> Administrar Familia
-    </button>
-</div>
-
-<div class="modal fade" id="modalGestionFamilia" tabindex="-1" aria-labelledby="modalGestionFamiliaLabel"
-    aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg rounded-4">
-
-            <div class="modal-header bg-primary text-white rounded-top-4">
-                <h5 class="modal-title fw-bold" id="modalGestionFamiliaLabel">
-                    <i class="bi bi-gear-fill me-2"></i>Gestión de Miembros y Roles
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                    aria-label="Close"></button>
-            </div>
-
-            <div class="modal-body p-4">
-                <form th:action="@{/familia/guardar}" method="post" class="card p-3 bg-light border-0 rounded-3 mb-4">
-                    <h6 class="fw-bold text-secondary mb-3"><i class="bi bi-person-plus-fill me-1"></i> Registrar / Editar Miembro</h6>
-                    <input type="hidden" id="miembroId" name="id">
-
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label for="nombreCompleto" class="form-label small fw-semibold text-muted">Nombre Completo</label>
-                            <input type="text" id="nombreCompleto" name="nombre" class="form-control"
-                                placeholder="Ej. Juan Ortiz" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="tipoMembresia" class="form-label small fw-semibold text-muted">Rol en el Control Médico</label>
-                            <select id="tipoMembresia" name="tipoMembresia" class="form-select" required>
-                                <option value="" disabled selected>Selecciona una opción...</option>
-                                <option value="BENEFICIARIO">Beneficiario (Padre/Madre)</option>
-                                <option value="APORTADOR">Aportador (Hijo/a)</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="text-end mt-3">
-                        <button type="submit" class="btn btn-primary btn-sm px-4 rounded-3 fw-bold">
-                            <i class="bi bi-save me-1"></i> Guardar Miembro
-                        </button>
-                    </div>
-                </form>
-
-                <h6 class="fw-bold text-secondary mb-2"><i class="bi bi-list-task me-1"></i> Miembros de la Familia</h6>
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle border-light">
-                        <thead class="table-light small text-uppercase">
-                            <tr>
-                                <th>Nombre</th>
-                                <th>Tipo de Miembro</th>
-                                <th class="text-center">Acceso al Sistema</th>
-                                <th class="text-end">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody class="small">
-                            <tr th:each="miembro : ${familiares}">
-                                <td class="fw-bold text-dark" th:text="${miembro.nombre}">Juan Ortiz</td>
+                                <td th:text="${#temporals.format(familia.fechaCreacion, 'dd/MM/yyyy HH:mm')}">14/07/2026</td>
                                 <td>
-                                    <span th:if="${miembro.tipoMembresia != null}"
-                                        th:classappend="${miembro.tipoMembresia.toString() == 'BENEFICIARIO'} ? 'bg-info-subtle text-info border border-info' : 'bg-warning-subtle text-warning border border-warning'"
-                                        class="badge px-2.5 py-1.5 rounded-pill fw-bold">
-                                        <span th:text="${miembro.tipoMembresia}">APORTADOR</span>
+                                    <span th:if="${familia.activo}" class="badge bg-success-subtle text-success px-3 py-2 rounded-pill">
+                                        <i class="bi bi-check-circle-fill me-1"></i> Activo
+                                    </span>
+                                    <span th:unless="${familia.activo}" class="badge bg-danger-subtle text-danger px-3 py-2 rounded-pill">
+                                        <i class="bi bi-x-circle-fill me-1"></i> Suspendido
                                     </span>
                                 </td>
-                                <td class="text-center">
-                                    <span th:if="${miembro.administrador != null && miembro.administrador}"
-                                        class="badge bg-success px-2.5 py-1.5 rounded-pill shadow-sm">
-                                        <i class="bi bi-shield-check me-1"></i> Administrador Actual
-                                    </span>
-                                    
-                                    <form th:if="${miembro.administrador == null || !miembro.administrador}"
-                                        th:action="@{/familia/heredar/{id}(id=${miembro.id})}" method="post"
-                                        class="d-inline">
-                                        <button type="submit"
-                                            class="btn btn-link btn-sm p-0 text-decoration-none text-primary fw-semibold"
-                                            onclick="return confirm('¿Estás seguro de que deseas transferir el rol de Administrador a este miembro? Perderás el acceso de administración.')">
-                                            <i class="bi bi-arrow-left-right me-1"></i> Heredar Admin
-                                        </button>
-                                    </form>
+                                <td>
+                                    <a th:href="@{/sys-admin/familia/{id}/miembros(id=${familia.id})}" class="btn btn-sm btn-dark px-3 shadow-sm">
+                                        <i class="bi bi-gear-fill me-1"></i> Gestionar Familia
+                                    </a>
                                 </td>
-                                <td class="text-end">
-                                    <div class="btn-group btn-group-sm">
-                                        <button type="button" class="btn btn-outline-secondary border-0 btn-editar-miembro" th:data-id="${miembro.id}"
-                                            th:data-nombre="${miembro.nombre}" th:data-membresia="${miembro.tipoMembresia}" title="Editar">
-                                            <i class="bi bi-pencil-square"></i>
-                                        </button>
-                                        <form th:if="${miembro.administrador == null || !miembro.administrador}"
-                                            th:action="@{/familia/eliminar/{id}(id=${miembro.id})}" method="post" class="d-inline"
-                                            th:onsubmit="return confirm('¿Estás seguro de que deseas eliminar a este miembro de la familia?');">
-                                    
-                                            <button type="submit" class="btn btn-outline-danger border-0 p-1" title="Eliminar">
-                                                <i class="bi bi-trash3-fill"></i>
-                                            </button>
-                                        </form>
-                                    </div>
+                            </tr>
+                            <tr th:if="${#lists.isEmpty(familias.content)}">
+                                <td colspan="5" class="text-muted py-5">
+                                    <i class="bi bi-folder-x fs-1 d-block mb-2"></i>
+                                    No hay familias registradas en el sistema.
                                 </td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
-
             </div>
         </div>
-    </div>
-</div>
 
-<!-- MODAL DE REGISTRO FINANCIERO -->
-<div class="modal fade" id="modalRegistro" tabindex="-1" aria-labelledby="modalRegistroLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title fw-bold" id="modalRegistroLabel"><i class="bi bi-calculator me-2"></i>Capturar Transacción</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form th:action="@{/movimientos/guardar}" th:object="${movimiento}" method="post">
-                <div class="modal-body p-4">
-                    
-                    <!-- Campo: Fecha -->
-                    <div class="mb-3">
-                        <label for="fecha" class="form-label text-muted small fw-bold">Fecha del Movimiento</label>
-                        <input type="date" th:field="*{fecha}" id="fecha" class="form-control" required>
-                    </div>
-
-                    <!-- Campo: Familiar -->
-                    <div class="mb-3">
-                        <label for="familiar" class="form-label text-muted small fw-bold">Miembro Familiar</label>
-                        <select th:field="*{familiar.id}" id="familiar" class="form-select" required>
-                            <option value="" disabled selected>Selecciona un familiar...</option>
-                            <option th:each="fam : ${familiares}" th:value="${fam.id}" th:text="${fam.nombre}"></option>
-                        </select>
-                    </div>
-
-                    <!-- Campo: Tipo de Movimiento -->
-                    <div class="mb-3">
-                        <label for="tipo" class="form-label text-muted small fw-bold">Tipo de Transacción</label>
-                        <select th:field="*{tipo}" id="tipo" class="form-select" onchange="alternarCategoria()" required>
-                            <option value="GASTO" selected>Gasto Médico</option>
-                            <option value="APORTACION">Aportación a Fondos</option>
-                        </select>
-                    </div>
-
-                    <!-- Campo: Categoría Médica (Se oculta dinámicamente si es Aportación) -->
-                    <div class="mb-3" id="grupoCategoria">
-                        <label for="categoria" class="form-label text-muted small fw-bold">Categoría Médica</label>
-                        <select th:field="*{categoria.id}" id="categoria" class="form-select">
-                            <option value="" selected>Ninguna / No aplica</option>
-                            <option th:each="cat : ${categorias}" th:value="${cat.id}" th:text="${cat.nombre}"></option>
-                        </select>
-                    </div>
-
-                    <!-- Campo: Monto -->
-                    <div class="mb-3">
-                        <label for="monto" class="form-label text-muted small fw-bold">Monto ($)</label>
-                        <input type="number" step="0.01" min="0.01" th:field="*{monto}" id="monto" class="form-control" placeholder="0.00" required>
-                    </div>
-
-                    <!-- Campo: Descripción -->
-                    <div class="mb-3">
-                        <label for="descripcion" class="form-label text-muted small fw-bold">Descripción / Concepto</label>
-                        <textarea th:field="*{descripcion}" id="descripcion" class="form-control" rows="2" placeholder="Ej. Compra de paracetamol, consulta general..." required></textarea>
-                    </div>
-
-                </div>
-                <div class="modal-footer bg-light border-0 px-4">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary px-4">Guardar Registro</button>
-                </div>
-            </form>
+        <div th:if="${familias.totalPages > 1}" class="d-flex justify-content-center mt-4">
+            <nav>
+                <ul class="pagination shadow-sm">
+                    <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
+                        <a class="page-link" th:href="@{/sys-admin/dashboard(page=${currentPage - 1})}">Anterior</a>
+                    </li>
+                    <li class="page-item" th:each="i : ${#numbers.sequence(0, familias.totalPages - 1)}" th:classappend="${currentPage == i} ? 'active'">
+                        <a class="page-link" th:href="@{/sys-admin/dashboard(page=${i})}" th:text="${i + 1}">1</a>
+                    </li>
+                    <li class="page-item" th:classappend="${currentPage == familias.totalPages - 1} ? 'disabled'">
+                        <a class="page-link" th:href="@{/sys-admin/dashboard(page=${currentPage + 1})}">Siguiente</a>
+                    </li>
+                </ul>
+            </nav>
         </div>
     </div>
-</div>
 
-<!-- MODAL DE REPORTE INDIVIDUAL -->
-<div class="modal fade" id="modalFiltroReporte" tabindex="-1" aria-labelledby="modalFiltroReporteLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-sm">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-dark text-white">
-                <h6 class="modal-title fw-bold" id="modalFiltroReporteLabel"><i class="bi bi-person-lines-fill me-2"></i>Seleccionar Familiar</h6>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form th:action="@{/reporte}" method="get" target="_blank">
-                <div class="modal-body p-3">
-                    <div class="mb-3">
-                        <label for="familiarReporteId" class="form-label text-muted small fw-bold">Miembro del Grupo</label>
-                        <select name="familiarId" id="familiarReporteId" class="form-select form-select-sm" required>
-                            <option value="" disabled selected>Elige un familiar...</option>
-                            <option th:each="fam : ${familiares}" th:value="${fam.id}" th:text="${fam.nombre}"></option>
-                        </select>
-                    </div>
-                </div>
-                <div class="modal-footer bg-light border-0 p-2">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
-                
-                    <button type="submit" id="btnDescargarReporte" data-bs-dismiss="modal" class="btn btn-dark btn-sm px-3">Descargar
-                        PDF</button>
-                </div>
-                </form>
-        </div>
-    </div>
-</div>
-
-<!-- SCRIPT PARA CERRAR EL MODAL AL DESCARGAR EL REPORTE   -->
-<script>
-    document.getElementById('btnDescargarReporte').addEventListener('click', function() {
-        var modalElement = document.getElementById('modalFiltroReporte');
-        var modalInstance = bootstrap.Modal.getInstance(modalElement);
-        
-        if (modalInstance) {
-            // Le damos 100ms para que el navegador procese el submit del formulario hacia la pestaña nueva
-            setTimeout(function() {
-                modalInstance.hide();
-                
-                // Forzamos la eliminación de cualquier residuo oscuro en el fondo
-                const backdrop = document.querySelector('.modal-backdrop');
-                if (backdrop) {
-                    backdrop.remove();
-                    document.body.style.overflow = 'auto';
-                    document.body.style.paddingRight = '0px';
-                }
-            }, 100);
-        }
-    });
-</script>
-
-<!-- SCRIPT DINÁMICO PARA VALIDACIÓN DE INTERFAZ -->
-<script>
-    function alternarCategoria() {
-        const tipoElement = document.getElementById('tipo');
-        const grupoCategoria = document.getElementById('grupoCategoria');
-        const categoriaSelect = document.getElementById('categoria');
-
-        if (tipoElement.value === 'APORTACION') {
-            // Ocultar campo de categoría médica si es un ingreso ordinario
-            grupoCategoria.style.display = 'none';
-            categoriaSelect.value = ''; // Resetear el valor
-        } else {
-            // Mostrar si es un gasto médico
-            grupoCategoria.style.display = 'block';
-        }
-    }
-    // Ejecutar al cargar la página por si acaso
-    document.addEventListener("DOMContentLoaded", alternarCategoria);
-</script>
-
-<!-- SCRIPT DINÁMICO PARA EDITAR GESTION DE MIEMBROS Y ROLES -->
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        // Escuchamos los clics en cualquier botón que tenga la clase 'btn-editar-miembro'
-        document.body.addEventListener('click', function (event) {
-            const boton = event.target.closest('.btn-editar-miembro');
-
-            if (boton) {
-                // Extraemos los datos de manera segura desde el DOM
-                const id = boton.getAttribute('data-id');
-                const nombre = boton.getAttribute('data-nombre');
-                const membresia = boton.getAttribute('data-membresia');
-
-                // Inyectamos los valores en los campos del formulario
-                document.getElementById('miembroId').value = id;
-                document.getElementById('nombreCompleto').value = nombre;
-                document.getElementById('tipoMembresia').value = membresia;
-
-                // Cambiamos visualmente el título del formulario CRUD
-                const tituloFormulario = document.querySelector('#modalGestionFamilia form h6');
-                if (tituloFormulario) {
-                    tituloFormulario.innerHTML = `<i class="bi bi-pencil-fill me-1"></i> Editar Miembro: ${nombre}`;
-                }
-            }
-        });
-    });
-</script>
-
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
 </html>

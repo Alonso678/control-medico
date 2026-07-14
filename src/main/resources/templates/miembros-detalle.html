@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" 
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" 
+      lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalle de Familia - SYS_ADMIN</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        body { background-color: #f4f7f6; }
+        .card-header-custom {
+            background: linear-gradient(135px, #1e3c72 0%, #2a5298 100%);
+        }
+    </style>
+</head>
+<body class="bg-light">
+
+    <div class="container py-5">
+        <div class="mb-4">
+            <a th:href="@{/sys-admin/dashboard}" class="btn btn-outline-secondary btn-sm shadow-sm px-3">
+                <i class="bi bi-arrow-left me-1"></i> Volver a la Consola
+            </a>
+        </div>
+
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header card-header-custom text-white p-3 fw-bold fs-5">
+                        <i class="bi bi-people-fill me-2 text-warning"></i> Miembros e Integrantes de la Familia
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0 text-center">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Familiar</th>
+                                        <th>Username</th>
+                                        <th>Rol de Seguridad</th>
+                                        <th>Tipo de Membresía</th>
+                                        <th>Acciones Rápidas</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="miembro : ${miembros}">
+                                        <td class="fw-bold text-dark" th:text="${miembro.nombre}">Juan Pérez</td>
+                                        <td class="text-secondary" th:text="${miembro.username}">juanp12</td>
+                                        <td>
+                                            <span th:if="${miembro.role != null and miembro.role.descripcion == 'SYS_ADMIN'}" class="badge bg-dark px-3 py-2">SYS_ADMIN</span>
+                                            <span th:if="${miembro.role != null and miembro.role.descripcion == 'ROLE_ADMIN'}" class="badge bg-danger px-3 py-2">ADMIN FAMILIA</span>
+                                            <span th:if="${miembro.role != null and miembro.role.descripcion == 'ROLE_FAMILIAR'}" class="badge bg-secondary px-3 py-2">FAMILIAR</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge" th:classappend="${miembro.tipoMembresia.name() == 'APORTADOR'} ? 'bg-success' : 'bg-info'" th:text="${miembro.tipoMembresia}">APORTADOR</span>
+                                        </td>
+                                        <td>
+                                            <form th:action="@{/sys-admin/miembro/actualizar-membresia}" method="post" class="d-inline-block me-2">
+                                                <input type="hidden" name="miembroId" th:value="${miembro.id}">
+                                                <input type="hidden" name="familiaId" th:value="${familiaId}">
+                                                <select name="tipoMembresia" class="form-select form-select-sm d-inline-block w-auto shadow-sm" onchange="this.form.submit()">
+                                                    <option th:each="tipo : ${tiposMembresia}" th:value="${tipo}" th:text="${tipo}" th:selected="${miembro.tipoMembresia == tipo}"></option>
+                                                </select>
+                                            </form>
+
+                                            <form th:action="@{/sys-admin/familia/reasignar-admin}" method="post" class="d-inline-block" 
+                                                  th:if="${miembro.role != null and miembro.role.descripcion != 'ROLE_ADMIN' and miembro.role.descripcion != 'SYS_ADMIN'}">
+                                                <input type="hidden" name="familiaId" th:value="${familiaId}">
+                                                <input type="hidden" name="nuevoAdminId" th:value="${miembro.id}">
+                                                <button type="submit" class="btn btn-warning btn-sm fw-semibold shadow-sm">
+                                                    <i class="bi bi-shield-up"></i> Asignar Admin
+                                                </button>
+                                            </form>
+                                            
+                                            <span class="text-muted small" th:if="${miembro.role != null and (miembro.role.descripcion == 'ROLE_ADMIN' or miembro.role.descripcion == 'SYS_ADMIN')}">
+                                                <i class="bi bi-lock-fill text-secondary"></i> Protegido
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <tr th:if="${#lists.isEmpty(miembros)}">
+                                        <td colspan="5" class="text-muted py-4">No hay familiares vinculados a este inquilino.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
