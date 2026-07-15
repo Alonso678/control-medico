@@ -35,4 +35,7 @@ public interface MovimientoRepository extends JpaRepository<Movimiento, Long> {
 
     @Query("SELECT COALESCE(SUM(m.monto), 0) FROM Movimiento m WHERE m.tipo = 'GASTO' AND m.familiar.id = :familiarId")
     BigDecimal sumGastosByFamiliar(@Param("familiarId") Long familiarId);
+
+    // MÉTODO NUEVO: Recupera las aportaciones de un miembro usando su familiar ID y el tipo ('APORTACION')
+    List<Movimiento> findByFamiliarIdAndTipo(Long familiarId, String tipo);
 }

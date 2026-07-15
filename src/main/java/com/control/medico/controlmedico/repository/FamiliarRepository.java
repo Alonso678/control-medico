@@ -1,5 +1,6 @@
 package com.control.medico.controlmedico.repository;
 
+import com.control.medico.controlmedico.model.Familia;
 import com.control.medico.controlmedico.model.Familiar;
 import com.control.medico.controlmedico.model.TipoMembresia;
 
@@ -25,4 +26,16 @@ public interface FamiliarRepository extends JpaRepository<Familiar, Long> {
     List<Familiar> findByFamiliaId(Long familiaId);
     
     long countByFamiliaId(Long familiaId);
+
+    // Método nuevo para filtrar por la Familia y el tipo de membresía "APORTADOR"
+    List<Familiar> findByFamiliaIdAndTipoMembresia(Long familiaId, String tipoMembresia);
+
+    // Buscar los familiares que pertenecen a una familia específica y tienen cierto tipo de membresía
+    List<Familiar> findByFamiliaAndTipoMembresia(Familia familia, TipoMembresia tipoMembresia);
+
+    // MÉTODO NUEVO: Cuenta todos los miembros asociados a un objeto Familia
+    long countByFamilia(Familia familia);
+
+    long countByFamiliaAndTipoMembresia(Familia familia, TipoMembresia tipoMembresia);
+    
 }
