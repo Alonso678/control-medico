@@ -22,6 +22,18 @@
         }
     </style>
 </head>
+
+<div th:if="${mensajeExito}" class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+    <i class="bi bi-check-circle-fill me-2"></i>
+    <span th:text="${mensajeExito}">Operación exitosa.</span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+
+<div th:if="${mensajeError}" class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+    <span th:text="${mensajeError}">Ocurrió un error.</span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
 <body>
 
     <nav class="navbar navbar-expand-lg navbar-ligth navbar-custom shadow-sm mb-4">
@@ -55,55 +67,63 @@
                     <div class="badge bg-primary fs-6 py-2 px-3">
                         <i class="bi bi-building me-1"></i> <span th:text="${familias.totalElements}">0</span> Familias de Alta
                     </div>
+                    <button type="button" class="btn btn-success shadow-sm px-4 fw-semibold" onclick="abrirModalCrear()">
+                        <i class="bi bi-plus-lg me-1"></i> Registrar Nueva Familia
+                    </button>
                 </div>
             </div>
         </div>
 
-        <div class="card shadow-sm border-0">
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0 text-center">
-                        <thead class="table-light">
-                            <tr>
-                                <th>ID Familia</th>
-                                <th>Nombre del Inquilino / Familia</th>
-                                <th>Fecha de Alta</th>
-                                <th>Estado Operativo</th>
-                                <th>Acciones Administrativas</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr th:each="familia : ${familias.content}">
-                                <td class="fw-bold text-secondary" th:text="${familia.id}">1</td>
-                                <td>
-                                    <span class="fw-semibold text-primary fs-5" th:text="${familia.nombre}">Familia Pérez</span>
-                                </td>
-                                <td th:text="${#temporals.format(familia.fechaCreacion, 'dd/MM/yyyy HH:mm')}">14/07/2026</td>
-                                <td>
-                                    <span th:if="${familia.activo}" class="badge bg-success-subtle text-success px-3 py-2 rounded-pill">
-                                        <i class="bi bi-check-circle-fill me-1"></i> Activo
-                                    </span>
-                                    <span th:unless="${familia.activo}" class="badge bg-danger-subtle text-danger px-3 py-2 rounded-pill">
-                                        <i class="bi bi-x-circle-fill me-1"></i> Suspendido
-                                    </span>
-                                </td>
-                                <td>
-                                    <a th:href="@{/sys-admin/familia/{id}/miembros(id=${familia.id})}" class="btn btn-sm btn-dark px-3 shadow-sm">
-                                        <i class="bi bi-gear-fill me-1"></i> Gestionar Familia
-                                    </a>
-                                </td>
-                            </tr>
-                            <tr th:if="${#lists.isEmpty(familias.content)}">
-                                <td colspan="5" class="text-muted py-5">
-                                    <i class="bi bi-folder-x fs-1 d-block mb-2"></i>
-                                    No hay familias registradas en el sistema.
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+        <table class="table table-hover align-middle mb-0 text-center">
+            <thead class="table-light text-muted small text-uppercase">
+                <tr>
+                    <th>ID Familia</th>
+                    <th>Nombre del Inquilino / Familia</th>
+                    <th>Fecha de Alta</th>
+                    <th>Estado Operativo</th>
+                    <th>Acciones Administrativas</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="fam : ${familias.content}">
+                    <td th:text="${fam.id}">1</td>
+                    <td>
+                        <a th:href="@{/sys-admin/familia/{id}/miembros(id=${fam.id})}"
+                            class="fw-bold text-decoration-none text-primary" th:text="${fam.nombre}">
+                            Familia Ortiz Salvador
+                        </a>
+                    </td>
+                    <td th:text="${fam.fechaCreacion != null ? #temporals.format(fam.fechaCreacion, 'dd/MM/yyyy HH:mm') : '—'}">
+                        25/06/2026 18:40</td>
+                    <td>
+                        <span th:text="${fam.activo ? 'Activo' : 'Inactivo'}"
+                            th:classappend="${fam.activo ? 'badge bg-success-subtle text-success px-3 py-2 rounded-pill' : 'badge bg-danger-subtle text-danger px-3 py-2 rounded-pill'}">
+                            Activo
+                        </span>
+                    </td>
+                    <td>
+                        <div class="d-flex justify-content-center gap-2">
+                            <a th:href="@{/sys-admin/familia/{id}/miembros(id=${fam.id})}" class="btn btn-dark btn-sm px-3">
+                                <i class="bi bi-gear-fill me-1"></i> Gestionar Familia
+                            </a>
+        
+                            <button type="button" class="btn btn-warning btn-sm text-white"
+                                th:onclick="'abrirModalEditar(' + ${fam.id} + ')'" title="Editar Nombre/Estado">
+                                <i class="bi bi-pencil-square"></i>
+                            </button>
+        
+                            <form th:action="@{/sys-admin/familia/eliminar/{id}(id=${fam.id})}" method="post"
+                                onsubmit="return confirm('¿Estás completamente seguro de eliminar esta familia? Esta acción borrará permanentemente sus registros si no tiene dependencias.');"
+                                style="display:inline;">
+                                <button type="submit" class="btn btn-danger btn-sm" title="Eliminar Familia del Sistema">
+                                    <i class="bi bi-trash3-fill"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
 
         <div th:if="${familias.totalPages > 1}" class="d-flex justify-content-center mt-4">
             <nav>
@@ -121,6 +141,87 @@
             </nav>
         </div>
     </div>
+
+    <div class="modal fade" id="modalFamilia" tabindex="-1" aria-labelledby="modalFamiliaLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title fw-bold" id="modalFamiliaLabel">
+                        <i class="bi bi-house-add-fill me-2 text-warning"></i>
+                        <span id="modalTitulo">Registrar Familia</span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+    
+                <form th:action="@{/sys-admin/familia/guardar}" th:object="${nuevaFamilia}" method="post">
+                    <div class="modal-body p-4">
+                        <input type="hidden" th:field="*{id}" id="familiaId" />
+    
+                        <div class="mb-3">
+                            <label for="nombre" class="form-label text-muted small fw-bold">Nombre del Inquilino /
+                                Familia</label>
+                            <input type="text" th:field="*{nombre}" id="nombre" class="form-control"
+                                placeholder="Ej. Familia Ortiz Salvador" required>
+                        </div>
+    
+                        <div class="mb-3" id="grupoEstado" style="display: none;">
+                            <label for="activo" class="form-label text-muted small fw-bold">Estado
+                                Operativo</label>
+                            <select th:field="*{activo}" id="activo" class="form-select">
+                                <option th:value="true">Activo</option>
+                                <option th:value="false">Inactivo</option>
+                            </select>
+                            </div>
+                    </div>
+    
+                    <div class="modal-footer bg-light border-0 px-4">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary px-4 fw-semibold">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let modalFamilia;
+
+        document.addEventListener("DOMContentLoaded", function () {
+            modalFamilia = new bootstrap.Modal(document.getElementById('modalFamilia'));
+        });
+
+        // Función para limpiar el modal y configurarlo para creación
+        function abrirModalCrear() {
+            document.getElementById('modalTitulo').innerText = "Registrar Nueva Familia";
+            document.getElementById('familiaId').value = ""; // ID vacío = Crear
+            document.getElementById('nombre').value = "";
+            document.getElementById('grupoEstado').style.display = "none"; // Ocultar control de estado en creación
+            document.getElementById('activo').value = true;
+            modalFamilia.show();
+        }
+
+        // Función que recupera los datos desde el controlador mediante Fetch API
+        function abrirModalEditar(id) {
+            document.getElementById('modalTitulo').innerText = "Modificar Datos de Familia";
+            document.getElementById('grupoEstado').style.display = "block"; // Mostrar control de estado en edición
+
+            fetch('/sys-admin/familia/datos/' + id)
+                .then(response => {
+                    if (!response.ok) throw new Error("No se pudo recuperar la información.");
+                    return response.json();
+                })
+                .then(data => {
+                    document.getElementById('familiaId').value = data.id; // Asignar ID existente = Editar
+                    document.getElementById('nombre').value = data.nombre;
+                    document.getElementById('activo').value = true;
+                    modalFamilia.show();
+                })
+                .catch(error => {
+                    alert("Error al cargar los datos de la familia: " + error.message);
+                });
+        }
+    </script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
