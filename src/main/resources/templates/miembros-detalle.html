@@ -52,7 +52,11 @@
                                             <span th:if="${miembro.role != null and miembro.role.descripcion == 'ROLE_FAMILIAR'}" class="badge bg-secondary px-3 py-2">FAMILIAR</span>
                                         </td>
                                         <td>
-                                            <span class="badge" th:classappend="${miembro.tipoMembresia.name() == 'APORTADOR'} ? 'bg-success' : 'bg-info'" th:text="${miembro.tipoMembresia}">APORTADOR</span>
+                                            <span class="badge"
+                                                th:classappend="${miembro.tipoMembresia == null ? 'bg-secondary' : (miembro.tipoMembresia?.name() == 'APORTADOR' ? 'bg-success' : 'bg-info')}"
+                                                th:text="${miembro.tipoMembresia != null ? miembro.tipoMembresia : 'Sin Registro'}">
+                                                APORTADOR
+                                            </span>
                                         </td>
                                         <td>
                                             <form th:action="@{/sys-admin/miembro/actualizar-membresia}" method="post" class="d-inline-block me-2">
