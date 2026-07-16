@@ -27,8 +27,12 @@
         <div class="row">
             <div class="col-md-12">
                 <div class="card shadow-sm border-0 mb-4">
-                    <div class="card-header card-header-custom text-dark p-3 fw-bold fs-5">
-                        <i class="bi bi-people-fill me-2 text-warning"></i> Miembros e Integrantes de la Familia
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2 class="h4 text-gray-800">Integrantes de la Familia</h2>
+                        <button type="button" class="btn btn-primary btn-sm shadow-sm" data-bs-toggle="modal"
+                            data-bs-target="#modalNuevoMiembro">
+                            <i class="bi bi-person-plus-fill me-1"></i> Registrar Integrante
+                        </button>
                     </div>
                     <div class="card-body p-0">
                         <div class="table-responsive">
@@ -79,6 +83,14 @@
                                             <span class="text-muted small" th:if="${miembro.role != null and (miembro.role.descripcion == 'ROLE_ADMIN' or miembro.role.descripcion == 'SYS_ADMIN')}">
                                                 <i class="bi bi-lock-fill text-secondary"></i> Protegido
                                             </span>
+
+                                            <form th:action="@{/sys-admin/familia/{fId}/miembros/eliminar/{mId}(fId=${familiaId}, mId=${miembro.id})}" method="post"
+                                                class="d-inline"
+                                                th:onsubmit="return confirm('¿Estás seguro de que deseas eliminar a este miembro de la familia? Esta acción no se puede deshacer.');">
+                                                <button type="submit" class="btn btn-danger btn-sm">
+                                                    <i class="bi bi-trash-fill"></i> Eliminar
+                                                </button>
+                                            </form>
                                         </td>
                                     </tr>
                                     <tr th:if="${#lists.isEmpty(miembros)}">
@@ -92,6 +104,91 @@
             </div>
         </div>
     </div>
+
+    <div class="modal fade" id="modalNuevoMiembro" tabindex="-1" aria-labelledby="modalNuevoMiembroLabel"
+        aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="modalNuevoMiembroLabel"><i class="bi bi-person-plus me-2"></i>Añadir Miembro
+                        Familiar</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+                <form th:action="@{/sys-admin/familia/{familiaId}/miembros/guardar(familiaId=${familiaId})}" method="post"
+                    th:object="${nuevoMiembro}">
+                    <div class="modal-body">
+                
+                        <div class="mb-3">
+                            <label for="nombre" class="form-label fw-bold">Nombre Completo</label>
+                            <input type="text" th:field="*{nombre}" id="nombre" class="form-control" required
+                                placeholder="Ej: Brenda Ortiz" />
+                        </div>
+                
+                        <div class="mb-3">
+                            <label for="username" class="form-label fw-bold">Nombre de Usuario (Username)</label>
+                            <input type="text" th:field="*{username}" id="username" class="form-control" required
+                                placeholder="Ej: brenda.ortiz" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="password" class="form-label fw-bold">Contraseña Temporal</label>
+                            <div class="input-group">
+                                <input type="password" th:field="*{password}" id="password" class="form-control" required minlength="4"
+                                    placeholder="Asigna una clave provisoria" />
+                                <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility()">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                            <div class="form-text text-muted">Mínimo 4 caracteres. El usuario la usará en su primer inicio de sesión.</div>
+                        </div>
+                
+                        <div class="mb-3">
+                            <label for="tipoMembresia" class="form-label fw-bold">Tipo de Membresía</label>
+                            <select th:field="*{tipoMembresia}" id="tipoMembresia" class="form-select" required>
+                                <option value="">-- Seleccione una opción --</option>
+                                <option th:each="tipo : ${tiposMembresia}" th:value="${tipo}" th:text="${tipo}">APORTADOR</option>
+                            </select>
+                        </div>
+                
+                        <hr>
+                
+                        <div class="form-check form-switch p-3 bg-light rounded border">
+                            <input class="form-check-input ms-0 me-2" type="checkbox" name="isAdministradorCheck"
+                                id="isAdministradorCheck">
+                            <label class="form-check-label fw-bold text-dark" for="isAdministradorCheck">
+                                ¿Asignar como Administrador Principal?
+                            </label>
+                            <div class="form-text text-muted mt-1">
+                                <i class="bi bi-info-circle-fill text-warning me-1"></i> Si activas esta opción, el sistema
+                                le asignará el <strong>ROLE_ADMIN</strong> y modificará al antiguo administrador de la
+                                familia a <strong>ROLE_FAMILIAR</strong> de forma automática.
+                            </div>
+                        </div>
+                
+                    </div>
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-success btn-sm px-3">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function togglePasswordVisibility() {
+            const passwordInput = document.getElementById('password');
+            const icon = document.querySelector('[onclick="togglePasswordVisibility()"] i');
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                icon.classList.replace('bi-eye', 'bi-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                icon.classList.replace('bi-eye-slash', 'bi-eye');
+            }
+        }
+    </script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
