@@ -19,7 +19,7 @@
 
     <div class="container py-5">
         <div class="mb-4">
-            <a th:href="@{/sys-admin/dashboard}" class="btn btn-outline-secondary btn-sm shadow-sm px-3">
+            <a th:href="@{/}" class="btn btn-outline-secondary btn-sm shadow-sm px-3">
                 <i class="bi bi-arrow-left me-1"></i> Volver a la Consola
             </a>
         </div>
@@ -115,8 +115,10 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
                         aria-label="Close"></button>
                 </div>
-                <form th:action="@{/sys-admin/familia/{familiaId}/miembros/guardar(familiaId=${familiaId})}" method="post"
-                    th:object="${nuevoMiembro}">
+                <form th:action="${esSysAdmin} 
+                                                 ? @{/sys-admin/familia/{familiaId}/miembros/guardar(familiaId=${familiaId})} 
+                                                 : @{/admin/familia/{familiaId}/miembros/guardar(familiaId=${familiaId})}"
+                    method="post" th:object="${nuevoMiembro}">
                     <div class="modal-body">
                 
                         <div class="mb-3">
@@ -130,7 +132,7 @@
                             <input type="text" th:field="*{username}" id="username" class="form-control" required
                                 placeholder="Ej: brenda.ortiz" />
                         </div>
-
+                
                         <div class="mb-3">
                             <label for="password" class="form-label fw-bold">Contraseña Temporal</label>
                             <div class="input-group">
@@ -140,7 +142,8 @@
                                     <i class="bi bi-eye"></i>
                                 </button>
                             </div>
-                            <div class="form-text text-muted">Mínimo 4 caracteres. El usuario la usará en su primer inicio de sesión.</div>
+                            <div class="form-text text-muted">Mínimo 4 caracteres. El usuario la usará en su primer inicio de sesión.
+                            </div>
                         </div>
                 
                         <div class="mb-3">

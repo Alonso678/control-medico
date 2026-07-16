@@ -45,6 +45,7 @@ public class SysAdminController {
         model.addAttribute("familias", familias);
         model.addAttribute("currentPage", page);
         model.addAttribute("nuevaFamilia", new Familia());
+        model.addAttribute("esSysAdmin", true);
         return "dashboard"; 
     }
 
