@@ -36,12 +36,16 @@
                         </thead>
                         <tbody>
                             <tr th:if="${#lists.isEmpty(miembros)}">
-                                <td colspan="3" class="text-center py-4 text-muted">No se encontraron miembros aportadores registrados en esta familia.</td>
+                                <td colspan="3" class="text-center py-4 text-muted">No se encontraron miembros aportadores registrados en esta
+                                    familia.</td>
                             </tr>
-                            <tr th:each="m : ${miembros}">
+                            <!-- 🛡️ Filtrado estricto: Muestra todo si es Admin, o solo su propia fila si es Familiar estándar -->
+                            <tr th:each="m : ${miembros}" th:if="${familiar.administrador or m.username == #authentication.name}">
+                        
                                 <td class="fw-bold text-dark" th:text="${m.nombre}">Juan Pérez</td>
                                 <td>
-                                    <span class="badge bg-success-subtle text-success border border-success-subtle" th:text="${m.tipoMembresia}">APORTADOR</span>
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle"
+                                        th:text="${m.tipoMembresia}">APORTADOR</span>
                                 </td>
                                 <td class="text-center">
                                     <a th:href="@{/reporte/descargar/{id}(id=${m.id})}" class="btn btn-danger btn-sm">
