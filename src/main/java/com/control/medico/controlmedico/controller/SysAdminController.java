@@ -19,8 +19,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Controller
-@RequestMapping("/sys-admin")
-@PreAuthorize("hasRole('SYS_ADMIN')") 
+@RequestMapping("/sys-admin") // Prefijo base para este controlador
 public class SysAdminController {
 
     private final AdminGlobalService adminGlobalService;
@@ -38,8 +37,12 @@ public class SysAdminController {
         this.passwordEncoder = passwordEncoder;
     }
 
-    // Dashboard Central de Superusuario
+    // ==========================================
+    // ENDPOINTS EXCLUSIVOS DE SYS_ADMIN
+    // ==========================================
+
     @GetMapping("/dashboard")
+    @PreAuthorize("hasRole('SYS_ADMIN')") // 🔐 Protegido individualmente
     public String dashboard(@RequestParam(defaultValue = "0") int page, Model model) {
         Page<Familia> familias = adminGlobalService.obtenerFamiliasPaginadas(page);
         model.addAttribute("familias", familias);
@@ -49,83 +52,66 @@ public class SysAdminController {
         return "dashboard"; 
     }
 
-    // ==========================================
-    // CRUD DE FAMILIAS
-    // ==========================================
-
     @PostMapping("/familia/guardar")
-    public String guardarFamilia(@ModelAttribute("nuevaFamilia") Familia familia,
-            RedirectAttributes redirectAttributes) {
+    @PreAuthorize("hasRole('SYS_ADMIN')")
+    public String guardarFamilia(@ModelAttribute("nuevaFamilia") Familia familia, RedirectAttributes redirectAttributes) {
         try {
             if (familia.getId() == null) {
                 familia.setFechaCreacion(LocalDateTime.now());
                 familia.setActivo(true);
-
                 if (familia.getCodigoAcceso() == null || familia.getCodigoAcceso().trim().isEmpty()) {
-                    String nombreDepurado = familia.getNombre()
-                            .toUpperCase()
-                            .replace("FAMILIA", "") 
-                            .replaceAll("\\s+", ""); 
-
+                    String nombreDepurado = familia.getNombre().toUpperCase().replace("FAMILIA", "").replaceAll("\\s+", ""); 
                     String prefijo = nombreDepurado.substring(0, Math.min(nombreDepurado.length(), 8));
                     int anioActual = java.time.Year.now().getValue();
                     familia.setCodigoAcceso(prefijo + anioActual);
                 } else {
                     familia.setCodigoAcceso(familia.getCodigoAcceso().trim().toUpperCase());
                 }
-
                 familiaRepository.save(familia);
                 redirectAttributes.addFlashAttribute("mensajeExito", "Familia creada correctamente.");
             } else {
-                Familia familiaExistente = familiaRepository.findById(familia.getId())
-                        .orElseThrow(() -> new RuntimeException("Familia no encontrada"));
-
+                Familia familiaExistente = familiaRepository.findById(familia.getId()).orElseThrow(() -> new RuntimeException("Familia no encontrada"));
                 familiaExistente.setNombre(familia.getNombre());
-
                 if (familia.getCodigoAcceso() != null && !familia.getCodigoAcceso().trim().isEmpty()) {
                     familiaExistente.setCodigoAcceso(familia.getCodigoAcceso().toUpperCase());
                 }
-
                 if (familia.getActivo() != null) {
                     familiaExistente.setActivo(familia.getActivo());
                 }
-
                 familiaRepository.save(familiaExistente);
                 redirectAttributes.addFlashAttribute("mensajeExito", "Familia actualizada correctamente.");
             }
         } catch (Exception e) {
-            e.printStackTrace();
-            redirectAttributes.addFlashAttribute("mensajeError",
-                    "Error al procesar la operación de la familia: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("mensajeError", "Error al procesar: " + e.getMessage());
         }
         return "redirect:/sys-admin/dashboard";
     }
 
     @GetMapping("/familia/datos/{id}")
     @ResponseBody
+    @PreAuthorize("hasRole('SYS_ADMIN')")
     public Familia obtenerDatosFamilia(@PathVariable("id") Long id) {
-        return familiaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Familia no encontrada"));
+        return familiaRepository.findById(id).orElseThrow(() -> new RuntimeException("Familia no encontrada"));
     }
 
     @PostMapping("/familia/eliminar/{id}")
+    @PreAuthorize("hasRole('SYS_ADMIN')")
     public String eliminarFamilia(@PathVariable("id") Long id, RedirectAttributes redirectAttributes) {
         try {
             familiaRepository.deleteById(id);
-            redirectAttributes.addFlashAttribute("mensajeExito", "Familia eliminada con éxito del sistema.");
+            redirectAttributes.addFlashAttribute("mensajeExito", "Familia eliminada.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensajeError",
-                    "No se puede eliminar la familia porque tiene usuarios o registros asociados.");
+            redirectAttributes.addFlashAttribute("mensajeError", "No se puede eliminar.");
         }
         return "redirect:/sys-admin/dashboard";
     }
 
     // ==========================================
-    // GESTIÓN DE MIEMBROS (OPTIMIZADO & CORREGIDO)
+    // GESTIÓN DE MIEMBROS COMPARITDA (SYS_ADMIN y ADMIN)
     // ==========================================
 
-    // Ver y administrar los familiares de una familia elegida (Se renombra {id} a {familiaId})
     @GetMapping("/familia/{familiaId}/miembros")
+    @PreAuthorize("hasAnyRole('SYS_ADMIN', 'ADMIN')") // 🔓 Permite la entrada a ambos
     public String gestionarMiembros(@PathVariable("familiaId") Long familiaId, Model model) {
         List<Familiar> miembros = adminGlobalService.obtenerMiembrosPorFamilia(familiaId);
         model.addAttribute("miembros", miembros);
@@ -139,78 +125,91 @@ public class SysAdminController {
         return "miembros-detalle";
     }
 
-    // SOLUCIÓN AL BUG: Se cambia la ruta a /familia/{familiaId}/miembros/guardar
     @PostMapping("/familia/{familiaId}/miembros/guardar")
+    @PreAuthorize("hasAnyRole('SYS_ADMIN', 'ADMIN')")
     public String guardarMiembro(@PathVariable("familiaId") Long familiaId,
             @ModelAttribute("nuevoMiembro") Familiar familiar,
             @RequestParam(value = "isAdministradorCheck", required = false) Boolean isAdministradorCheck,
             RedirectAttributes redirectAttributes) {
         try {
             if (familiar.getId() == null) {
-                familiar.setId(null); // Forzar inserción limpia si es ID autogenerado
-                
+                familiar.setId(null); 
                 if (familiar.getPassword() != null && !familiar.getPassword().trim().isEmpty()) {
-                    String encodedPassword = passwordEncoder.encode(familiar.getPassword().trim());
-                    familiar.setPassword(encodedPassword);
+                    familiar.setPassword(passwordEncoder.encode(familiar.getPassword().trim()));
                 } else {
-                    throw new RuntimeException("La contraseña temporal es obligatoria para nuevos registros.");
+                    throw new RuntimeException("La contraseña es obligatoria.");
                 }
             } else {
-                // Manejo por si es edición y la contraseña viene vacía (mantener la actual)
                 Familiar familiarExistente = familiarRepository.findById(familiar.getId()).orElse(null);
                 if (familiarExistente != null && (familiar.getPassword() == null || familiar.getPassword().trim().isEmpty())) {
                     familiar.setPassword(familiarExistente.getPassword());
                 } else if (familiar.getPassword() != null && !familiar.getPassword().trim().isEmpty()) {
                     familiar.setPassword(passwordEncoder.encode(familiar.getPassword().trim()));
                 }
-            } // <-- Llave de cierre del bloque ELSE (Línea 169 corregida)
+            } 
 
-            // Lógica para verificar el switch de Administrador
             boolean esAdmin = (isAdministradorCheck != null && isAdministradorCheck);
             familiar.setAdministrador(esAdmin);
 
-            // Guardar a través del servicio con sus validaciones correspondientes
             adminGlobalService.guardarMiembroConReglas(familiaId, familiar);
-            redirectAttributes.addFlashAttribute("mensajeExito", "Miembro integrado con éxito a la familia.");
-
+            redirectAttributes.addFlashAttribute("mensajeExito", "Miembro guardado con éxito.");
         } catch (Exception e) {
-
-        e.printStackTrace();
-            redirectAttributes.addFlashAttribute("mensajeError", "Error al procesar el miembro: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("mensajeError", "Error: " + e.getMessage());
         } 
         return "redirect:/sys-admin/familia/" + familiaId + "/miembros";
-
     } 
 
     @PostMapping("/miembro/actualizar-membresia")
+    @PreAuthorize("hasAnyRole('SYS_ADMIN', 'ADMIN')")
     public String actualizarMembresia(@RequestParam("miembroId") Long miembroId,
             @RequestParam("tipoMembresia") TipoMembresia tipoMembresia,
             @RequestParam("familiaId") Long familiaId) {
-        Familiar familiar = familiarRepository.findById(miembroId) 
-                .orElseThrow(() -> new RuntimeException("Miembro no encontrado")); 
+        Familiar familiar = familiarRepository.findById(miembroId).orElseThrow(() -> new RuntimeException("No encontrado")); 
         familiar.setTipoMembresia(tipoMembresia); 
         familiarRepository.save(familiar); 
         return "redirect:/sys-admin/familia/" + familiaId + "/miembros"; 
     }
 
     @PostMapping("/familia/reasignar-admin")
-    public String reasignarAdmin(@RequestParam("familiaId") Long familiaId,
-            @RequestParam("nuevoAdminId") Long nuevoAdminId) {
+    @PreAuthorize("hasAnyRole('SYS_ADMIN', 'ADMIN')")
+    public String reasignarAdmin(@RequestParam("familiaId") Long familiaId, @RequestParam("nuevoAdminId") Long nuevoAdminId) {
         adminGlobalService.cambiarAdministradorDeFamilia(familiaId, nuevoAdminId);
         return "redirect:/sys-admin/familia/" + familiaId + "/miembros";
     }
 
     @PostMapping("/familia/{familiaId}/miembros/eliminar/{miembroId}")
+    @PreAuthorize("hasAnyRole('SYS_ADMIN', 'ADMIN')")
     public String eliminarMiembro(@PathVariable("familiaId") Long familiaId,
             @PathVariable("miembroId") Long miembroId,
             RedirectAttributes redirectAttributes) {
         try {
             adminGlobalService.eliminarMiembroConReglas(miembroId);
-            redirectAttributes.addFlashAttribute("mensajeExito", "El miembro ha sido eliminado correctamente.");
+            redirectAttributes.addFlashAttribute("mensajeExito", "Miembro eliminado.");
         } catch (Exception e) {
-            e.printStackTrace();
-            redirectAttributes.addFlashAttribute("mensajeError", "No se pudo eliminar al miembro: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("mensajeError", "Error: " + e.getMessage());
         }
         return "redirect:/sys-admin/familia/" + familiaId + "/miembros";
+    }
+
+    // ==========================================
+    // ENDPOINT PARA EL ROLE_ADMIN LOGUEADO
+    // ==========================================
+    
+    // Ruta final: /sys-admin/mi-familia/miembros
+    @GetMapping("/mi-familia/miembros")
+    @PreAuthorize("hasRole('ADMIN')")
+    public String gestionarMiembrosPropios(org.springframework.security.core.Authentication authentication, Model model) {
+        String username = authentication.getName();
+        Familiar adminLogueado = familiarRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Administrador no encontrado en el sistema"));
+        
+        if (adminLogueado.getFamilia() == null) {
+            throw new RuntimeException("El usuario actual no tiene ninguna familia asignada.");
+        }
+        
+        Long familiaId = adminLogueado.getFamilia().getId();
+
+        // Reutiliza de forma transparente el método de arriba pasándole el ID correcto detectado en base de datos.
+        return gestionarMiembros(familiaId, model);
     }
 }

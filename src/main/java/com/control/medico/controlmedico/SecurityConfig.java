@@ -16,7 +16,6 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 @Configuration
@@ -49,8 +48,8 @@ public class SecurityConfig {
                         // Recursos públicos indispensables
                         .requestMatchers("/login", "/css/**", "/js/**").permitAll()
 
-                        // Control estricto por Authorities de la Base de Datos (Mapeo exacto)
-                        .requestMatchers("/sys-admin/**").hasAuthority("ROLE_SYS_ADMIN")
+                        // 🔄 MODIFICACIÓN AQUÍ: Permitimos el paso a ambos roles para las rutas de administración compartidas
+                        .requestMatchers("/sys-admin/**").hasAnyAuthority("ROLE_SYS_ADMIN", "ROLE_ADMIN")
                         .requestMatchers("/familia/**").hasAuthority("ROLE_ADMIN")
                         
                         // La raíz "/" debe estar autenticada para permitir que el controlador decida la redirección por rol

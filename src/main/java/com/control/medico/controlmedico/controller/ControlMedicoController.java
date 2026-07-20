@@ -8,7 +8,6 @@ import com.control.medico.controlmedico.repository.CategoriaRepository;
 import com.control.medico.controlmedico.repository.FamiliarRepository;
 import com.control.medico.controlmedico.repository.MovimientoRepository;
 import com.control.medico.controlmedico.service.ControlMedicoService;
-import com.control.medico.controlmedico.service.AdminGlobalService;
 import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
@@ -50,18 +49,14 @@ public class ControlMedicoController {
 
     private final MovimientoRepository movimientoRepository;
 
-    private final AdminGlobalService adminGlobalService; // <-- Inyección del servicio global
-
     public ControlMedicoController(ControlMedicoService controlMedicoService,
             FamiliarRepository familiarRepository,
             CategoriaRepository categoriaRepository,
-            MovimientoRepository movimientoRepository,
-            AdminGlobalService adminGlobalService) {
+            MovimientoRepository movimientoRepository) {
         this.controlMedicoService = controlMedicoService;
         this.familiarRepository = familiarRepository;
         this.categoriaRepository = categoriaRepository;
         this.movimientoRepository = movimientoRepository;
-        this.adminGlobalService = adminGlobalService;
     }
 
     @GetMapping("/")
@@ -485,73 +480,5 @@ public class ControlMedicoController {
     public String eliminarMovimiento(@RequestParam("id") Long id) {
         controlMedicoService.eliminarMovimiento(id);
         return "redirect:/"; // Redirecciona al Dashboard para ver los cambios
-    }
-
-    // 🆕 ENDPOINT PARA QUE EL ROLE_ADMIN GESTIONE LOS MIEMBROS DE SU PROPIA FAMILIA
-    @GetMapping("/admin/familia/miembros")
-    public String gestionarMiembrosPropios(org.springframework.security.core.Authentication authentication, Model model) {
-        // 1. Obtener el nombre de usuario autenticado (ADMIN)
-        String username = authentication.getName();
-        
-        // 2. Localizar al Familiar y extraer el ID de la familia a la que pertenece
-        Familiar adminLogueado = familiarRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Administrador de familia no encontrado en el sistema"));
-        
-        if (adminLogueado.getFamilia() == null) {
-            throw new RuntimeException("El usuario actual no tiene ninguna familia asignada.");
-        }
-        
-        Long familiaId = adminLogueado.getFamilia().getId();
-
-        // 3. Reutilizar la lógica del servicio global para listar los integrantes
-        List<Familiar> miembros = adminGlobalService.obtenerMiembrosPorFamilia(familiaId);
-        
-        // 4. Llenar el modelo con los atributos que la vista 'miembros-detalle' espera recibir
-        model.addAttribute("miembros", miembros);
-        model.addAttribute("familiaId", familiaId);
-        model.addAttribute("tiposMembresia", TipoMembresia.values());
-
-        // Preparar objeto limpio para el formulario de agregar miembro
-        Familiar nuevoMiembro = new Familiar();
-        nuevoMiembro.setAdministrador(false);
-        model.addAttribute("nuevoMiembro", nuevoMiembro);
-        
-        // 5. Retornar la misma vista HTML compartida
-        return "miembros-detalle";
-    }
-
-    // 🆕 ENDPOINT POST PARA QUE EL ROLE_ADMIN GUARDE O REGISTRE UN INTEGRANTE
-    @PostMapping("/admin/familia/{familiaId}/miembros/guardar")
-    public String guardarMiembroComoAdmin(@PathVariable("familiaId") Long familiaId,
-                                          @ModelAttribute("nuevoMiembro") Familiar familiar,
-                                          @RequestParam(value = "isAdministradorCheck", required = false) Boolean isAdministradorCheck,
-                                          RedirectAttributes redirectAttributes,
-                                          org.springframework.security.core.Authentication authentication) {
-        try {
-            // SEGURIDAD EXTRAS (Opcional pero recomendado): 
-            // Validar que el ROLE_ADMIN logueado realmente pertenezca a la familia que intenta modificar
-            String usernameLogueado = authentication.getName();
-            Familiar adminLogueado = familiarRepository.findByUsername(usernameLogueado)
-                    .orElseThrow(() -> new RuntimeException("Administrador no encontrado"));
-            
-            if (!adminLogueado.getFamilia().getId().equals(familiaId)) {
-                throw new RuntimeException("No tienes permisos para agregar miembros a una familia ajena.");
-            }
-
-            // Mapeamos el switch de administrador
-            boolean esAdmin = (isAdministradorCheck != null && isAdministradorCheck);
-            familiar.setAdministrador(esAdmin);
-
-            // Reutilizamos la lógica del servicio que ya encripta y valida las llaves primarias
-            adminGlobalService.guardarMiembroConReglas(familiaId, familiar);
-            
-            redirectAttributes.addFlashAttribute("mensajeExito", "Miembro integrado con éxito a tu familia.");
-        } catch (Exception e) {
-            e.printStackTrace();
-            redirectAttributes.addFlashAttribute("mensajeError", "Error al procesar el miembro: " + e.getMessage());
-        }
-        
-        // Redirecciona al endpoint del ROLE_ADMIN para ver los cambios reflejados
-        return "redirect:/admin/familia/miembros";
     }
 }
