@@ -12,7 +12,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -28,16 +27,13 @@ public class SysAdminController {
     private final AdminGlobalService adminGlobalService;
     private final FamiliarRepository familiarRepository;
     private final FamiliaRepository familiaRepository;
-    private final PasswordEncoder passwordEncoder; 
 
     public SysAdminController(AdminGlobalService adminGlobalService,
             FamiliarRepository familiarRepository,
-            FamiliaRepository familiaRepository, 
-            PasswordEncoder passwordEncoder) {
+            FamiliaRepository familiaRepository) {
         this.adminGlobalService = adminGlobalService;
         this.familiarRepository = familiarRepository;
         this.familiaRepository = familiaRepository;
-        this.passwordEncoder = passwordEncoder;
     }
 
     // ==========================================
@@ -131,36 +127,72 @@ public class SysAdminController {
     @PostMapping("/familia/{familiaId}/miembros/guardar")
     @PreAuthorize("hasAnyRole('SYS_ADMIN', 'ADMIN')")
     public String guardarMiembro(@PathVariable("familiaId") Long familiaId,
-            @ModelAttribute("nuevoMiembro") Familiar familiar,
+            @ModelAttribute Familiar familiar, // Al retirar el nombre explícito, Spring mapea el objeto que mande el
+                                               // formulario indistintamente
             @RequestParam(value = "isAdministradorCheck", required = false) Boolean isAdministradorCheck,
+            org.springframework.security.core.Authentication authentication, // 🚀 CAMBIO 1: Inyección de la
+                                                                             // autenticación
             RedirectAttributes redirectAttributes) {
         try {
-            if (familiar.getId() == null) {
-                familiar.setId(null); 
-                if (familiar.getPassword() != null && !familiar.getPassword().trim().isEmpty()) {
-                    familiar.setPassword(passwordEncoder.encode(familiar.getPassword().trim()));
-                } else {
-                    throw new RuntimeException("La contraseña es obligatoria.");
-                }
-            } else {
-                Familiar familiarExistente = familiarRepository.findById(familiar.getId()).orElse(null);
-                if (familiarExistente != null && (familiar.getPassword() == null || familiar.getPassword().trim().isEmpty())) {
-                    familiar.setPassword(familiarExistente.getPassword());
-                } else if (familiar.getPassword() != null && !familiar.getPassword().trim().isEmpty()) {
-                    familiar.setPassword(passwordEncoder.encode(familiar.getPassword().trim()));
-                }
-            } 
-
+            // 1. Mantener la consistencia del rol administrativo desde la vista
             boolean esAdmin = (isAdministradorCheck != null && isAdministradorCheck);
             familiar.setAdministrador(esAdmin);
 
+            // 2. Delegar el procesamiento y la retención de contraseñas al Service
             adminGlobalService.guardarMiembroConReglas(familiaId, familiar);
             redirectAttributes.addFlashAttribute("mensajeExito", "Miembro guardado con éxito.");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("mensajeError", "Error: " + e.getMessage());
-        } 
+        }
+
+        // 🚀 CAMBIO 2: Redirección dinámica basada en el rol del usuario actual
+        boolean esAdminFamiliar = authentication.getAuthorities().stream()
+                .anyMatch(r -> r.getAuthority().equals("ROLE_ADMIN"));
+
+        if (esAdminFamiliar) {
+            // Si es administrador local, se queda en su propia sección familiar sin rebotar
+            // al dashboard
+            return "redirect:/sys-admin/mi-familia/miembros";
+        }
+
+        // Si es SYS_ADMIN, regresa a la vista global de la familia que estaba auditando
         return "redirect:/sys-admin/familia/" + familiaId + "/miembros";
-    } 
+    }
+
+
+    // @PostMapping("/familia/{familiaId}/miembros/guardar")
+    // @PreAuthorize("hasAnyRole('SYS_ADMIN', 'ADMIN')")
+    // public String guardarMiembro(@PathVariable("familiaId") Long familiaId,
+    //         @ModelAttribute("nuevoMiembro") Familiar familiar,
+    //         @RequestParam(value = "isAdministradorCheck", required = false) Boolean isAdministradorCheck,
+    //         RedirectAttributes redirectAttributes) {
+    //     try {
+    //         if (familiar.getId() == null) {
+    //             familiar.setId(null); 
+    //             if (familiar.getPassword() != null && !familiar.getPassword().trim().isEmpty()) {
+    //                 familiar.setPassword(passwordEncoder.encode(familiar.getPassword().trim()));
+    //             } else {
+    //                 throw new RuntimeException("La contraseña es obligatoria.");
+    //             }
+    //         } else {
+    //             Familiar familiarExistente = familiarRepository.findById(familiar.getId()).orElse(null);
+    //             if (familiarExistente != null && (familiar.getPassword() == null || familiar.getPassword().trim().isEmpty())) {
+    //                 familiar.setPassword(familiarExistente.getPassword());
+    //             } else if (familiar.getPassword() != null && !familiar.getPassword().trim().isEmpty()) {
+    //                 familiar.setPassword(passwordEncoder.encode(familiar.getPassword().trim()));
+    //             }
+    //         } 
+
+    //         boolean esAdmin = (isAdministradorCheck != null && isAdministradorCheck);
+    //         familiar.setAdministrador(esAdmin);
+
+    //         adminGlobalService.guardarMiembroConReglas(familiaId, familiar);
+    //         redirectAttributes.addFlashAttribute("mensajeExito", "Miembro guardado con éxito.");
+    //     } catch (Exception e) {
+    //         redirectAttributes.addFlashAttribute("mensajeError", "Error: " + e.getMessage());
+    //     } 
+    //     return "redirect:/sys-admin/familia/" + familiaId + "/miembros";
+    // } 
 
     @PostMapping("/miembro/actualizar-membresia")
     @PreAuthorize("hasAnyRole('SYS_ADMIN', 'ADMIN')")

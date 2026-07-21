@@ -94,6 +94,13 @@
                                                 th:if="${miembro.administrador or (miembro.role != null and miembro.role.descripcion == 'SYS_ADMIN')}">
                                                 <i class="bi bi-lock-fill text-secondary"></i> Protegido
                                             </span>
+
+                                            <button type="button" class="btn btn-warning btn-sm shadow-sm text-white px-2" data-bs-toggle="modal"
+                                                data-bs-target="#modalNuevoMiembro" th:data-id="${miembro.id}" th:data-nombre="${miembro.nombre}"
+                                                th:data-username="${miembro.username}" th:data-membresia="${miembro.tipoMembresia}"
+                                                th:data-admin="${miembro.administrador}" onclick="prepararModalEditar(this)">
+                                                <i class="bi bi-pencil-fill"></i>
+                                            </button>
                             
                                             <!-- Formulario 3: Eliminar Miembro (Original) -->
                                             <form
@@ -124,6 +131,7 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form th:action="@{/sys-admin/familia/{fId}/miembros/guardar(fId=${familiaId})}" th:object="${nuevoMiembro}" method="post">
+                    <input type="hidden" th:field="*{id}" id="miembroId" />
                     <div class="modal-body p-4">
                         <div class="mb-3">
                             <label for="nombre" class="form-label fw-bold small text-muted">Nombre Completo</label>
@@ -136,11 +144,23 @@
                         <div class="mb-3">
                             <label for="password" class="form-label fw-bold small text-muted">Contraseña Temporal</label>
                             <div class="input-group">
+                                <!-- AJUSTE: Quitamos 'required' para permitir dejar en blanco al editar -->
+                                <input type="password" th:field="*{password}" id="password" class="form-control" minlength="4"
+                                    placeholder="Clave provisoria" />
+                                <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility()"><i
+                                        class="bi bi-eye"></i></button>
+                            </div>
+                            <!-- AJUSTE: Texto informativo dinámico -->
+                            <div class="form-text text-muted small" id="passwordHelp">Mínimo 4 caracteres. En edición, Dejar en blanco para mantener la actual o escribe una nueva para cambiarla".</div>
+                        </div>
+                        <!-- <div class="mb-3">
+                            <label for="password" class="form-label fw-bold small text-muted">Contraseña Temporal</label>
+                            <div class="input-group">
                                 <input type="password" th:field="*{password}" id="password" class="form-control" required minlength="4" placeholder="Clave provisoria" />
                                 <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility()"><i class="bi bi-eye"></i></button>
                             </div>
                             <div class="form-text text-muted small">Mínimo 4 caracteres.</div>
-                        </div>
+                        </div> -->
                         <div class="mb-3">
                             <label for="tipoMembresia" class="form-label fw-bold small text-muted">Tipo de Membresía</label>
                             <select th:field="*{tipoMembresia}" id="tipoMembresia" class="form-select" required>
@@ -165,7 +185,53 @@
     </div>
 
     <script>
-        function togglePasswordVisibility() {
+        // Función para rellenar el modal con los datos del miembro a editar
+    function prepararModalEditar(btn) {
+        // Cambiar títulos y estilos visuales del Modal para denotar Edición
+        document.getElementById('modalNuevoMiembroLabel').innerHTML = '<i class="bi bi-pencil-square me-2"></i>Editar Integrante Familiar';
+        const modalHeader = document.querySelector('#modalNuevoMiembro .modal-header');
+        modalHeader.classList.replace('bg-primary', 'bg-warning');
+
+        // Asignar los valores a los inputs del formulario utilizando los data-attributes del botón
+        document.getElementById('miembroId').value = btn.getAttribute('data-id');
+        document.getElementById('nombre').value = btn.getAttribute('data-nombre');
+        document.getElementById('username').value = btn.getAttribute('data-username');
+        document.getElementById('tipoMembresia').value = btn.getAttribute('data-membresia');
+        
+        // Quitar obligatoriedad a la contraseña en modo edición
+        document.getElementById('password').required = false;
+        document.getElementById('password').placeholder = "Dejar en blanco para no cambiar";
+
+        // Manejar el estado del switch de Administrador
+        const isAadmin = btn.getAttribute('data-admin') === 'true';
+        document.getElementById('isAdministradorCheck').checked = isAadmin;
+    }
+
+    // Escuchar el evento de cierre o apertura del modal para resetearlo cuando se vaya a crear uno nuevo
+    document.addEventListener('DOMContentLoaded', function() {
+        const modalEl = document.getElementById('modalNuevoMiembro');
+        
+        // Cada vez que se presione el botón "Registrar Integrante" original, limpiamos el formulario
+        document.querySelector('[data-bs-target="#modalNuevoMiembro"]').addEventListener('click', function() {
+            document.getElementById('modalNuevoMiembroLabel').innerHTML = '<i class="bi bi-person-plus me-2"></i>Añadir Miembro Familiar';
+            const modalHeader = document.querySelector('#modalNuevoMiembro .modal-header');
+            modalHeader.classList.replace('bg-warning', 'bg-primary');
+
+            // Limpiar los campos
+            document.getElementById('miembroId').value = '';
+            document.getElementById('nombre').value = '';
+            document.getElementById('username').value = '';
+            document.getElementById('tipoMembresia').value = '';
+            
+            // Restablecer contraseña como requerida para nuevos registros
+            document.getElementById('password').value = '';
+            document.getElementById('password').required = true;
+            document.getElementById('password').placeholder = "Clave provisoria";
+            
+            document.getElementById('isAdministradorCheck').checked = false;
+        });
+    });
+    function togglePasswordVisibility() {
             const passwordInput = document.getElementById('password');
             const icon = document.querySelector('[onclick="togglePasswordVisibility()"] i');
             if (passwordInput.type === 'password') {

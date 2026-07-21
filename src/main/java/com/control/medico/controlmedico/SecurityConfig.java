@@ -30,10 +30,9 @@ public class SecurityConfig {
         log.info("[LOG-SECURITY-INIT] ⚙️ Cargando la cadena de filtros de Spring Security...");
 
         http
-                // Desactivamos CSRF temporalmente para pruebas locales
                 .csrf(csrf -> csrf.disable())
                 
-                // 1. FILTRO DE LOGS PERSONALIZADO (Muestra qué URL entra al sistema de seguridad)
+                // 1. FILTRO DE LOGS PERSONALIZADO
                 .addFilterBefore(new Filter() {
                     @Override
                     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) 
@@ -44,34 +43,43 @@ public class SecurityConfig {
                     }
                 }, BasicAuthenticationFilter.class)
 
-                // 2. CONFIGURACIÓN DE AUTORIZACIONES
+                // 2. CONFIGURACIÓN DE AUTORIZACIONES (Cambio 2 Validado)
                 .authorizeHttpRequests(auth -> auth
-                        // Recursos públicos indispensables
-                        .requestMatchers("/login", "/css/**", "/js/**").permitAll()
+                        // 1. Recursos públicos indispensables
+                        .requestMatchers("/login", "/css/**", "/js/**", "/error").permitAll()
 
-                        // 🔄 MODIFICACIÓN AQUÍ: Permitimos el paso a ambos roles para las rutas de administración compartidas
-                        .requestMatchers("/sys-admin/**").hasAnyAuthority("ROLE_SYS_ADMIN", "ROLE_ADMIN")
-                        .requestMatchers("/familia/**").hasAuthority("ROLE_ADMIN")
-                        
-                        // La raíz "/" debe estar autenticada para permitir que el controlador decida la redirección por rol
-                        .requestMatchers("/").authenticated()
+                        // 2. Permitir el GET y el POST para la gestión de miembros a ROLE_ADMIN
+                        .requestMatchers("/sys-admin/mi-familia/**").hasAnyAuthority("ROLE_ADMIN")
+                        // 🚀 NUEVA LÍNEA: Permite que el ADMIN guarde los cambios de los miembros de su
+                        // familia
+                        .requestMatchers("/sys-admin/familia/*/miembros/guardar")
+                        .hasAnyAuthority("ROLE_ADMIN", "ROLE_SYS_ADMIN")
+
+                        // 3. Aislamiento estricto de la Consola Global (Solo SysAdmin)
+                        .requestMatchers("/sys-admin/**").hasAuthority("ROLE_SYS_ADMIN")
+
+                        // 4. Entorno familiar compartido
+                        .requestMatchers("/").hasAnyAuthority("ROLE_ADMIN", "ROLE_FAMILIAR")
+                        .requestMatchers("/familia/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_FAMILIAR")
                         .requestMatchers("/reporte/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_FAMILIAR")
-                        .requestMatchers("/api/util/encriptar").permitAll()
+                        .requestMatchers("/movimientos/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_FAMILIAR")
 
-                        // Cualquier otra ruta interna requiere estar logueado
+                        .requestMatchers("/api/util/encriptar").permitAll()
                         .anyRequest().authenticated())
                 
-                // 3. LOGS DE INICIO DE SESIÓN EXITOSO
+                // 3. CONTROL DE INICIO DE SESIÓN
                 .formLogin(form -> form
                         .loginPage("/login")
-                        .successHandler(customSuccessHandler()) // Manejador con logs integrados
+                        .successHandler(customSuccessHandler()) 
                         .permitAll())
                 
-                // 4. LOGS DE ACCESOS DENEGADOS (Para atrapar los errores 403)
+                // 4. MANEJO DE ACCESOS DENEGADOS 
                 .exceptionHandling(exception -> exception
                         .accessDeniedHandler(customAccessDeniedHandler()))
                 
-                .logout(logout -> logout.permitAll());
+                .logout(logout -> logout
+                        .logoutSuccessUrl("/login?logout=true")
+                        .permitAll());
 
         return http.build();
     }
@@ -81,27 +89,29 @@ public class SecurityConfig {
     public AuthenticationSuccessHandler customSuccessHandler() {
         return (request, response, authentication) -> {
             String username = authentication.getName();
-            Object authorities = authentication.getAuthorities();
-            log.info("[LOG-SECURITY-SUCCESS] 🎉 Autenticación EXITOSA. Usuario: '{}' | Authorities asignadas: {}", username, authorities);
+            var authorities = authentication.getAuthorities();
+            log.info("[LOG-SECURITY-SUCCESS] 🎉 Autenticación EXITOSA. Usuario: '{}' | Authorities: {}", username, authorities);
             
-            // Decisión inteligente y limpia de redirección basada en la Authority textual
-            if (authorities.toString().contains("ROLE_SYS_ADMIN")) {
-                log.info("[LOG-SECURITY-SUCCESS] 🔀 Redireccionando automáticamente a /sys-admin/dashboard");
+            boolean isSysAdmin = authorities.stream().anyMatch(a -> a.getAuthority().equals("ROLE_SYS_ADMIN"));
+            
+            if (isSysAdmin) {
+                log.info("[LOG-SECURITY-SUCCESS] 🔀 Redireccionando a Consola Global [/sys-admin/dashboard]");
                 response.sendRedirect("/sys-admin/dashboard");
             } else {
-                log.info("[LOG-SECURITY-SUCCESS] 🔀 Redireccionando automáticamente al Home raíz (/)");
+                // Redirección limpia a la raíz del proyecto para ADMIN y FAMILIAR
+                log.info("[LOG-SECURITY-SUCCESS] 🔀 Redireccionando a Panel Unificado [/]");
                 response.sendRedirect("/");
             }
         };
     }
 
-    // Bean para capturar e imprimir logs de los errores 403
+    // Bean para capturar errores 403 de forma segura
     @Bean
     public AccessDeniedHandler customAccessDeniedHandler() {
         return (request, response, accessDeniedException) -> {
-            log.error("[LOG-SECURITY-403] ❌ ACCESO RECHAZADO (403 Forbidden) para la URL: '{}'", request.getRequestURI());
-            log.error("[LOG-SECURITY-403] 💡 Detalle del rechazo: {}", accessDeniedException.getMessage());
-            response.sendRedirect("/login?error=true");
+            log.error("[LOG-SECURITY-403] ❌ ACCESO RECHAZADO (403 Forbidden) en: '{}'", request.getRequestURI());
+            log.error("[LOG-SECURITY-403] 💡 Razón: {}", accessDeniedException.getMessage());
+            response.sendRedirect("/?errorAccess=true");
         };
     }
 
