@@ -109,7 +109,8 @@
                                 <a th:href="@{/sys-admin/familia/{id}/miembros(id=${fam.id})}" class="btn btn-dark btn-sm px-2 text-nowrap">
                                     <i class="bi bi-gear-fill me-1"></i> Gestionar
                                 </a>
-                                <button type="button" class="btn btn-warning btn-sm text-white" th:onclick="'abrirModalEditar(' + ${fam.id} + ')'" title="Editar Nombre/Estado">
+                                <button type="button" class="btn btn-warning btn-sm text-white" th:onclick="|abrirModalEditar(${fam.id})|"
+                                    title="Editar Nombre/Estado">
                                     <i class="bi bi-pencil-square"></i>
                                 </button>
                                 <form th:action="@{/sys-admin/familia/eliminar/{id}(id=${fam.id})}" method="post" onsubmit="return confirm('¿Estás seguro?');" style="display:inline;">
@@ -187,17 +188,21 @@
         function abrirModalEditar(id) {
             document.getElementById('modalTitulo').innerText = "Modificar Datos de Familia";
             document.getElementById('grupoEstado').style.display = "block";
+    
             fetch('/sys-admin/familia/datos/' + id)
-                .then(response => {
-                    if (!response.ok) throw new Error("Error al recuperar información.");
-                    return response.json();
-                })
-                .then(data => {
-                    document.getElementById('familiaId').value = data.id;
-                    document.getElementById('nombre').value = data.nombre;
-                    document.getElementById('activo').value = data.activo.toString();
-                })
-                .catch(error => alert(error.message));
+            .then(response => {
+            if (!response.ok) throw new Error("Error al recuperar información.");
+            return response.json();
+            }) 
+            .then(data => {
+            document.getElementById('familiaId').value = data.id;
+            document.getElementById('nombre').value = data.nombre;
+            document.getElementById('activo').value = data.activo.toString();
+            
+            // ¡ESTA LÍNEA FALTABA! Muestra el modal en pantalla tras cargar los datos
+            modalFamilia.show(); 
+            })
+            .catch(error => alert(error.message));
         }
     </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
