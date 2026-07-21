@@ -47,18 +47,21 @@ public class AdminGlobalService { // <-- Asegurar que se llama exactamente así
         Rol rolAdmin = rolRepository.findByDescripcion("ROLE_ADMIN")
                 .orElseThrow(() -> new RuntimeException("Rol ROLE_ADMIN no configurado"));
 
-        // Degradamos a cualquier ADMIN viejo de ESTA familia específica
+        // 1. Degradamos a cualquier ADMIN viejo de ESTA familia específica basándonos en el flag booleano
         familiarRepository.findByFamiliaId(familiaId).stream()
-                .filter(f -> f.getRole() != null && "ROLE_ADMIN".equalsIgnoreCase(f.getRole().getDescripcion()))
+                .filter(f -> f.getAdministrador() != null && f.getAdministrador())
                 .forEach(f -> {
-                    f.setRole(rolFamiliar);
+                    f.setAdministrador(false); // <-- CORRECCIÓN: Apaga el flag booleano en la BD
+                    f.setRole(rolFamiliar);    // <-- Cambia el role_id a 2 (ROLE_FAMILIAR)
                     familiarRepository.save(f);
                 });
 
-        // Promovemos al nuevo usuario seleccionado como Administrador de su familia
+        // 2. Promovemos al nuevo usuario seleccionado como Administrador de su familia
         Familiar nuevoAdmin = familiarRepository.findById(nuevoAdminId)
                 .orElseThrow(() -> new RuntimeException("Miembro no encontrado"));
-        nuevoAdmin.setRole(rolAdmin);
+        
+        nuevoAdmin.setAdministrador(true); // <-- CORRECCIÓN: Enciende el flag booleano en la BD
+        nuevoAdmin.setRole(rolAdmin);      // <-- Cambia el role_id a 3 (ROLE_ADMIN)
         familiarRepository.save(nuevoAdmin);
     }
 

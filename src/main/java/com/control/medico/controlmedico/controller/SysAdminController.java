@@ -9,6 +9,9 @@ import com.control.medico.controlmedico.repository.FamiliaRepository;
 
 import org.springframework.data.domain.Page;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -172,10 +175,51 @@ public class SysAdminController {
 
     @PostMapping("/familia/reasignar-admin")
     @PreAuthorize("hasAnyRole('SYS_ADMIN', 'ADMIN')")
-    public String reasignarAdmin(@RequestParam("familiaId") Long familiaId, @RequestParam("nuevoAdminId") Long nuevoAdminId) {
+    public String reasignarAdmin(@RequestParam("familiaId") Long familiaId,
+            @RequestParam("nuevoAdminId") Long nuevoAdminId,
+            Authentication authentication) {
+
+        // 1. Ejecuta la lógica existente en tu servicio
         adminGlobalService.cambiarAdministradorDeFamilia(familiaId, nuevoAdminId);
+
+        // 2. Validar si el usuario que está ejecutando la acción es el ADMIN propio de
+        // la familia
+        boolean esAdminPuro = authentication.getAuthorities().stream()
+                .anyMatch(r -> r.getAuthority().equals("ROLE_ADMIN"));
+
+        if (esAdminPuro) {
+            /*
+             * Refrescamos el contexto de seguridad degradando sus permisos a ROLE_FAMILIAR
+             * de forma transparente sin destruir su sesión.
+             */
+            org.springframework.security.core.userdetails.User usuarioActual = (org.springframework.security.core.userdetails.User) authentication
+                    .getPrincipal();
+
+            java.util.List<org.springframework.security.core.GrantedAuthority> nuevosRoles = org.springframework.security.core.authority.AuthorityUtils
+                    .createAuthorityList("ROLE_FAMILIAR");
+
+            Authentication nuevaAutenticacion = new UsernamePasswordAuthenticationToken(
+                    usuarioActual,
+                    authentication.getCredentials(),
+                    nuevosRoles);
+
+            // Asignamos el nuevo contexto degradado
+            SecurityContextHolder.getContext().setAuthentication(nuevaAutenticacion);
+
+            // Lo mandamos al home ya que no tiene permisos para ver esta sección
+            return "redirect:/";
+        }
+
+        // Si lo hizo el SYS_ADMIN, todo sigue su flujo normal
         return "redirect:/sys-admin/familia/" + familiaId + "/miembros";
     }
+
+    // @PostMapping("/familia/reasignar-admin")
+    // @PreAuthorize("hasAnyRole('SYS_ADMIN', 'ADMIN')")
+    // public String reasignarAdmin(@RequestParam("familiaId") Long familiaId, @RequestParam("nuevoAdminId") Long nuevoAdminId) {
+    //     adminGlobalService.cambiarAdministradorDeFamilia(familiaId, nuevoAdminId);
+    //     return "redirect:/sys-admin/familia/" + familiaId + "/miembros";
+    // }
 
     @PostMapping("/familia/{familiaId}/miembros/eliminar/{miembroId}")
     @PreAuthorize("hasAnyRole('SYS_ADMIN', 'ADMIN')")
