@@ -72,15 +72,36 @@
                     </div>
                 </div>
             </div>
+            
             <div class="col-md-4 mb-3">
-                <div class="card card-counter border-0 shadow-sm text-white bg-dark h-100 border-start border-warning border-5">
+                <!-- 1. Tarjeta dinámica: Cambia el fondo y los bordes según el balance financiero -->
+                <div class="card card-counter border-0 shadow-sm h-100 border-5 border-start"
+                    th:classappend="${balanceDisponible < 0} ? 'bg-danger-subtle border-danger text-danger' : 
+                                     (${balanceDisponible == 0} ? 'bg-light border-secondary text-secondary' : 'bg-white border-primary text-primary')">
+            
                     <div class="card-body py-4">
-                        <div class="text-warning mb-2"><i class="bi bi-wallet2 fs-1"></i></div>
-                        <h6 class="card-title text-light text-uppercase small fw-bold">Fondos Disponibles</h6>
-                        <h3 class="card-text fw-bold text-warning" th:text="${'$' + #numbers.formatDecimal(balanceDisponible, 1, 'DEFAULT', 2, 'DEFAULT')}">$0.00</h3>
+                        <!-- 2. Ícono dinámico: Cambia el color del ícono según el estado -->
+                        <div class="mb-2" th:classappend="${balanceDisponible < 0} ? 'text-danger' : 
+                                             (${balanceDisponible == 0} ? 'text-secondary' : 'text-primary')">
+                            <i class="bi bi-wallet2 fs-1"></i>
+                        </div>
+            
+                        <!-- 3. Título de la tarjeta -->
+                        <h6 class="card-title text-uppercase small fw-bold"
+                            th:classappend="${balanceDisponible <= 0} ? 'text-muted' : 'text-primary-emphasis'">
+                            Fondos Disponibles
+                        </h6>
+            
+                        <!-- 4. Monto Dinámico con colores semánticos precisos -->
+                        <h3 class="card-text fw-bold" th:classappend="${balanceDisponible < 0} ? 'text-danger' : 
+                                            (${balanceDisponible == 0} ? 'text-dark' : 'text-success')"
+                            th:text="${'$' + #numbers.formatDecimal(balanceDisponible, 1, 'DEFAULT', 2, 'DEFAULT')}">
+                            $0.00
+                        </h3>
                     </div>
                 </div>
             </div>
+
         </div>
 
         <div class="card border-0 shadow-sm bg-white mb-5 rounded-3 overflow-hidden">
