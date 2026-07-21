@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
@@ -55,6 +56,7 @@ public class SecurityConfig {
                         // La raíz "/" debe estar autenticada para permitir que el controlador decida la redirección por rol
                         .requestMatchers("/").authenticated()
                         .requestMatchers("/reporte/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_FAMILIAR")
+                        .requestMatchers("/api/util/encriptar").permitAll()
 
                         // Cualquier otra ruta interna requiere estar logueado
                         .anyRequest().authenticated())
@@ -103,9 +105,8 @@ public class SecurityConfig {
         };
     }
 
-    @SuppressWarnings("deprecation")
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return org.springframework.security.crypto.password.NoOpPasswordEncoder.getInstance();
+        return new BCryptPasswordEncoder();
     }
 }

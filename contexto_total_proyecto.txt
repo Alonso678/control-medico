@@ -1,0 +1,2820 @@
+=== ARCHIVO: pom.xml ===
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>4.1.0</version>
+		<relativePath/> <!-- lookup parent from repository -->
+	</parent>
+	<groupId>com.control.medico</groupId>
+	<artifactId>controlmedico</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<name/>
+	<description/>
+	<url/>
+	<licenses>
+		<license/>
+	</licenses>
+	<developers>
+		<developer/>
+	</developers>
+	<scm>
+		<connection/>
+		<developerConnection/>
+		<tag/>
+		<url/>
+	</scm>
+	<properties>
+		<java.version>17</java.version>
+	</properties>
+	<dependencies>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-thymeleaf</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-webmvc</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.thymeleaf.extras</groupId>
+			<artifactId>thymeleaf-extras-springsecurity6</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.postgresql</groupId>
+			<artifactId>postgresql</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-thymeleaf-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-webmvc-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.github.librepdf</groupId>
+			<artifactId>openpdf</artifactId>
+			<version>2.0.2</version>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+				<configuration>
+					<excludes>
+						<exclude>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+						</exclude>
+					</excludes>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>default-compile</id>
+						<phase>compile</phase>
+						<goals>
+							<goal>compile</goal>
+						</goals>
+						<configuration>
+							<annotationProcessorPaths>
+								<path>
+									<groupId>org.projectlombok</groupId>
+									<artifactId>lombok</artifactId>
+								</path>
+							</annotationProcessorPaths>
+						</configuration>
+					</execution>
+					<execution>
+						<id>default-testCompile</id>
+						<phase>test-compile</phase>
+						<goals>
+							<goal>testCompile</goal>
+						</goals>
+						<configuration>
+							<annotationProcessorPaths>
+								<path>
+									<groupId>org.projectlombok</groupId>
+									<artifactId>lombok</artifactId>
+								</path>
+							</annotationProcessorPaths>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+
+</project>
+
+=== ARCHIVO: src/main/java/com/control/medico/controlmedico/controller/LoginController.java ===
+
+package com.control.medico.controlmedico.controller;
+
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
+import jakarta.servlet.http.HttpSession;
+
+@Controller
+public class LoginController {
+
+    @GetMapping("/login")
+    public String mostrarLogin(HttpServletRequest request,
+            @RequestParam(value = "error", required = false) String errorParam) {
+
+        HttpSession session = request.getSession(false);
+
+        if (session != null) {
+            Exception exception = (Exception) session.getAttribute("SPRING_SECURITY_LAST_EXCEPTION");
+
+            // Si es un error por cuenta deshabilitada y NO venimos ya de la redirección
+            if (exception instanceof DisabledException && !"inactivo".equals(errorParam)) {
+
+                // Opcional: Limpiamos la excepción de la sesión para evitar remanentes
+                session.removeAttribute("SPRING_SECURITY_LAST_EXCEPTION");
+
+                // Redirigimos de forma segura controlada
+                return "redirect:/login?error=inactivo";
+            }
+        }
+
+        // Si ya viene el parámetro ?error=inactivo o no hay errores, renderiza la vista
+        // en paz
+        return "login";
+    }
+}
+
+=== ARCHIVO: src/main/java/com/control/medico/controlmedico/controller/SysAdminController.java ===
+
+package com.control.medico.controlmedico.controller;
+
+import com.control.medico.controlmedico.model.Familia;
+import com.control.medico.controlmedico.model.Familiar;
+import com.control.medico.controlmedico.model.TipoMembresia;
+import com.control.medico.controlmedico.service.AdminGlobalService;
+import com.control.medico.controlmedico.repository.FamiliarRepository;
+import com.control.medico.controlmedico.repository.FamiliaRepository;
+
+import org.springframework.data.domain.Page;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Controller
+@RequestMapping("/sys-admin") // Prefijo base para este controlador
+public class SysAdminController {
+
+    private final AdminGlobalService adminGlobalService;
+    private final FamiliarRepository familiarRepository;
+    private final FamiliaRepository familiaRepository;
+    private final PasswordEncoder passwordEncoder; 
+
+    public SysAdminController(AdminGlobalService adminGlobalService,
+            FamiliarRepository familiarRepository,
+            FamiliaRepository familiaRepository, 
+            PasswordEncoder passwordEncoder) {
+        this.adminGlobalService = adminGlobalService;
+        this.familiarRepository = familiarRepository;
+        this.familiaRepository = familiaRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
+
+    // ==========================================
+    // ENDPOINTS EXCLUSIVOS DE SYS_ADMIN
+    // ==========================================
+
+    @GetMapping("/dashboard")
+    @PreAuthorize("hasRole('SYS_ADMIN')") // 🔐 Protegido individualmente
+    public String dashboard(@RequestParam(defaultValue = "0") int page, Model model) {
+        Page<Familia> familias = adminGlobalService.obtenerFamiliasPaginadas(page);
+        model.addAttribute("familias", familias);
+        model.addAttribute("currentPage", page);
+        model.addAttribute("nuevaFamilia", new Familia());
+        model.addAttribute("esSysAdmin", true);
+        return "dashboard"; 
+    }
+
+    @PostMapping("/familia/guardar")
+    @PreAuthorize("hasRole('SYS_ADMIN')")
+    public String guardarFamilia(@ModelAttribute("nuevaFamilia") Familia familia, RedirectAttributes redirectAttributes) {
+        try {
+            if (familia.getId() == null) {
+                familia.setFechaCreacion(LocalDateTime.now());
+                familia.setActivo(true);
+                if (familia.getCodigoAcceso() == null || familia.getCodigoAcceso().trim().isEmpty()) {
+                    String nombreDepurado = familia.getNombre().toUpperCase().replace("FAMILIA", "").replaceAll("\\s+", ""); 
+                    String prefijo = nombreDepurado.substring(0, Math.min(nombreDepurado.length(), 8));
+                    int anioActual = java.time.Year.now().getValue();
+                    familia.setCodigoAcceso(prefijo + anioActual);
+                } else {
+                    familia.setCodigoAcceso(familia.getCodigoAcceso().trim().toUpperCase());
+                }
+                familiaRepository.save(familia);
+                redirectAttributes.addFlashAttribute("mensajeExito", "Familia creada correctamente.");
+            } else {
+                Familia familiaExistente = familiaRepository.findById(familia.getId()).orElseThrow(() -> new RuntimeException("Familia no encontrada"));
+                familiaExistente.setNombre(familia.getNombre());
+                if (familia.getCodigoAcceso() != null && !familia.getCodigoAcceso().trim().isEmpty()) {
+                    familiaExistente.setCodigoAcceso(familia.getCodigoAcceso().toUpperCase());
+                }
+                if (familia.getActivo() != null) {
+                    familiaExistente.setActivo(familia.getActivo());
+                }
+                familiaRepository.save(familiaExistente);
+                redirectAttributes.addFlashAttribute("mensajeExito", "Familia actualizada correctamente.");
+            }
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensajeError", "Error al procesar: " + e.getMessage());
+        }
+        return "redirect:/sys-admin/dashboard";
+    }
+
+    @GetMapping("/familia/datos/{id}")
+    @ResponseBody
+    @PreAuthorize("hasRole('SYS_ADMIN')")
+    public Familia obtenerDatosFamilia(@PathVariable("id") Long id) {
+        return familiaRepository.findById(id).orElseThrow(() -> new RuntimeException("Familia no encontrada"));
+    }
+
+    @PostMapping("/familia/eliminar/{id}")
+    @PreAuthorize("hasRole('SYS_ADMIN')")
+    public String eliminarFamilia(@PathVariable("id") Long id, RedirectAttributes redirectAttributes) {
+        try {
+            familiaRepository.deleteById(id);
+            redirectAttributes.addFlashAttribute("mensajeExito", "Familia eliminada.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensajeError", "No se puede eliminar.");
+        }
+        return "redirect:/sys-admin/dashboard";
+    }
+
+    // ==========================================
+    // GESTIÓN DE MIEMBROS COMPARITDA (SYS_ADMIN y ADMIN)
+    // ==========================================
+
+    @GetMapping("/familia/{familiaId}/miembros")
+    @PreAuthorize("hasAnyRole('SYS_ADMIN', 'ADMIN')") // 🔓 Permite la entrada a ambos
+    public String gestionarMiembros(@PathVariable("familiaId") Long familiaId, Model model) {
+        List<Familiar> miembros = adminGlobalService.obtenerMiembrosPorFamilia(familiaId);
+        model.addAttribute("miembros", miembros);
+        model.addAttribute("familiaId", familiaId);
+        model.addAttribute("tiposMembresia", TipoMembresia.values());
+
+        Familiar nuevoMiembro = new Familiar();
+        nuevoMiembro.setAdministrador(false); 
+        model.addAttribute("nuevoMiembro", nuevoMiembro);
+
+        return "miembros-detalle";
+    }
+
+    @PostMapping("/familia/{familiaId}/miembros/guardar")
+    @PreAuthorize("hasAnyRole('SYS_ADMIN', 'ADMIN')")
+    public String guardarMiembro(@PathVariable("familiaId") Long familiaId,
+            @ModelAttribute("nuevoMiembro") Familiar familiar,
+            @RequestParam(value = "isAdministradorCheck", required = false) Boolean isAdministradorCheck,
+            RedirectAttributes redirectAttributes) {
+        try {
+            if (familiar.getId() == null) {
+                familiar.setId(null); 
+                if (familiar.getPassword() != null && !familiar.getPassword().trim().isEmpty()) {
+                    familiar.setPassword(passwordEncoder.encode(familiar.getPassword().trim()));
+                } else {
+                    throw new RuntimeException("La contraseña es obligatoria.");
+                }
+            } else {
+                Familiar familiarExistente = familiarRepository.findById(familiar.getId()).orElse(null);
+                if (familiarExistente != null && (familiar.getPassword() == null || familiar.getPassword().trim().isEmpty())) {
+                    familiar.setPassword(familiarExistente.getPassword());
+                } else if (familiar.getPassword() != null && !familiar.getPassword().trim().isEmpty()) {
+                    familiar.setPassword(passwordEncoder.encode(familiar.getPassword().trim()));
+                }
+            } 
+
+            boolean esAdmin = (isAdministradorCheck != null && isAdministradorCheck);
+            familiar.setAdministrador(esAdmin);
+
+            adminGlobalService.guardarMiembroConReglas(familiaId, familiar);
+            redirectAttributes.addFlashAttribute("mensajeExito", "Miembro guardado con éxito.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensajeError", "Error: " + e.getMessage());
+        } 
+        return "redirect:/sys-admin/familia/" + familiaId + "/miembros";
+    } 
+
+    @PostMapping("/miembro/actualizar-membresia")
+    @PreAuthorize("hasAnyRole('SYS_ADMIN', 'ADMIN')")
+    public String actualizarMembresia(@RequestParam("miembroId") Long miembroId,
+            @RequestParam("tipoMembresia") TipoMembresia tipoMembresia,
+            @RequestParam("familiaId") Long familiaId) {
+        Familiar familiar = familiarRepository.findById(miembroId).orElseThrow(() -> new RuntimeException("No encontrado")); 
+        familiar.setTipoMembresia(tipoMembresia); 
+        familiarRepository.save(familiar); 
+        return "redirect:/sys-admin/familia/" + familiaId + "/miembros"; 
+    }
+
+    @PostMapping("/familia/reasignar-admin")
+    @PreAuthorize("hasAnyRole('SYS_ADMIN', 'ADMIN')")
+    public String reasignarAdmin(@RequestParam("familiaId") Long familiaId,
+            @RequestParam("nuevoAdminId") Long nuevoAdminId,
+            Authentication authentication) {
+
+        // 1. Ejecuta la lógica existente en tu servicio
+        adminGlobalService.cambiarAdministradorDeFamilia(familiaId, nuevoAdminId);
+
+        // 2. Validar si el usuario que está ejecutando la acción es el ADMIN propio de
+        // la familia
+        boolean esAdminPuro = authentication.getAuthorities().stream()
+                .anyMatch(r -> r.getAuthority().equals("ROLE_ADMIN"));
+
+        if (esAdminPuro) {
+            /*
+             * Refrescamos el contexto de seguridad degradando sus permisos a ROLE_FAMILIAR
+             * de forma transparente sin destruir su sesión.
+             */
+            org.springframework.security.core.userdetails.User usuarioActual = (org.springframework.security.core.userdetails.User) authentication
+                    .getPrincipal();
+
+            java.util.List<org.springframework.security.core.GrantedAuthority> nuevosRoles = org.springframework.security.core.authority.AuthorityUtils
+                    .createAuthorityList("ROLE_FAMILIAR");
+
+            Authentication nuevaAutenticacion = new UsernamePasswordAuthenticationToken(
+                    usuarioActual,
+                    authentication.getCredentials(),
+                    nuevosRoles);
+
+            // Asignamos el nuevo contexto degradado
+            SecurityContextHolder.getContext().setAuthentication(nuevaAutenticacion);
+
+            // Lo mandamos al home ya que no tiene permisos para ver esta sección
+            return "redirect:/";
+        }
+
+        // Si lo hizo el SYS_ADMIN, todo sigue su flujo normal
+        return "redirect:/sys-admin/familia/" + familiaId + "/miembros";
+    }
+
+    // @PostMapping("/familia/reasignar-admin")
+    // @PreAuthorize("hasAnyRole('SYS_ADMIN', 'ADMIN')")
+    // public String reasignarAdmin(@RequestParam("familiaId") Long familiaId, @RequestParam("nuevoAdminId") Long nuevoAdminId) {
+    //     adminGlobalService.cambiarAdministradorDeFamilia(familiaId, nuevoAdminId);
+    //     return "redirect:/sys-admin/familia/" + familiaId + "/miembros";
+    // }
+
+    @PostMapping("/familia/{familiaId}/miembros/eliminar/{miembroId}")
+    @PreAuthorize("hasAnyRole('SYS_ADMIN', 'ADMIN')")
+    public String eliminarMiembro(@PathVariable("familiaId") Long familiaId,
+            @PathVariable("miembroId") Long miembroId,
+            RedirectAttributes redirectAttributes) {
+        try {
+            adminGlobalService.eliminarMiembroConReglas(miembroId);
+            redirectAttributes.addFlashAttribute("mensajeExito", "Miembro eliminado.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensajeError", "Error: " + e.getMessage());
+        }
+        return "redirect:/sys-admin/familia/" + familiaId + "/miembros";
+    }
+
+    // ==========================================
+    // ENDPOINT PARA EL ROLE_ADMIN LOGUEADO
+    // ==========================================
+    
+    // Ruta final: /sys-admin/mi-familia/miembros
+    @GetMapping("/mi-familia/miembros")
+    @PreAuthorize("hasRole('ADMIN')")
+    public String gestionarMiembrosPropios(org.springframework.security.core.Authentication authentication, Model model) {
+        String username = authentication.getName();
+        Familiar adminLogueado = familiarRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Administrador no encontrado en el sistema"));
+        
+        if (adminLogueado.getFamilia() == null) {
+            throw new RuntimeException("El usuario actual no tiene ninguna familia asignada.");
+        }
+        
+        Long familiaId = adminLogueado.getFamilia().getId();
+
+        // Reutiliza de forma transparente el método de arriba pasándole el ID correcto detectado en base de datos.
+        return gestionarMiembros(familiaId, model);
+    }
+}
+=== ARCHIVO: src/main/java/com/control/medico/controlmedico/controller/ControlMedicoController.java ===
+
+package com.control.medico.controlmedico.controller;
+
+import com.control.medico.controlmedico.model.Categoria;
+import com.control.medico.controlmedico.model.Familiar;
+import com.control.medico.controlmedico.model.Movimiento;
+import com.control.medico.controlmedico.model.TipoMembresia;
+import com.control.medico.controlmedico.repository.CategoriaRepository;
+import com.control.medico.controlmedico.repository.FamiliarRepository;
+import com.control.medico.controlmedico.repository.MovimientoRepository;
+import com.control.medico.controlmedico.service.ControlMedicoService;
+import com.lowagie.text.pdf.PdfPCell;
+import com.lowagie.text.pdf.PdfPTable;
+import com.lowagie.text.pdf.PdfWriter;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+
+import com.lowagie.text.*;
+
+import java.io.ByteArrayOutputStream;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.format.DateTimeFormatter;
+import java.util.Set;
+import java.util.List;
+
+@Controller
+public class ControlMedicoController {
+
+    private static final Logger log = LoggerFactory.getLogger(ControlMedicoController.class);
+    private final ControlMedicoService controlMedicoService;
+    private final FamiliarRepository familiarRepository;
+    // 1. Inyecta el nuevo repositorio en el constructor del controlador
+    private final CategoriaRepository categoriaRepository;
+
+    private final MovimientoRepository movimientoRepository;
+
+    public ControlMedicoController(ControlMedicoService controlMedicoService,
+            FamiliarRepository familiarRepository,
+            CategoriaRepository categoriaRepository,
+            MovimientoRepository movimientoRepository) {
+        this.controlMedicoService = controlMedicoService;
+        this.familiarRepository = familiarRepository;
+        this.categoriaRepository = categoriaRepository;
+        this.movimientoRepository = movimientoRepository;
+    }
+
+    @GetMapping("/")
+    public String dashboard(Authentication authentication, @RequestParam(value = "page", defaultValue = "0") int page,
+            Model model) {
+        log.info("[LOG-DASHBOARD] ──> Petición recibida en ruta raíz (/)");
+
+        if (authentication == null) {
+            log.warn("[LOG-DASHBOARD] La autenticación es NULL. Redireccionando a login.");
+            return "redirect:/login";
+        }
+
+        String usernameLogueado = authentication.getName();
+        Set<String> roles = AuthorityUtils.authorityListToSet(authentication.getAuthorities());
+
+        log.info("[LOG-DASHBOARD] 👤 Usuario firmado: '{}'", usernameLogueado);
+        log.info("[LOG-DASHBOARD] 🔑 Roles detectados: {}", roles);
+
+        // 1. DESVÍO DE SEGURIDAD: SYS_ADMIN va a su consola global
+        if (roles.contains("ROLE_SYS_ADMIN")) {
+            log.info("[LOG-DASHBOARD] 🔀 Detectado ROLE_SYS_ADMIN. Redireccionando a consola global.");
+            return "redirect:dashboard";
+        }
+
+        // 2. MULTI-TENANCY: Localizar datos de la familia asignada al usuario
+        Familiar familiar = familiarRepository.findByUsername(usernameLogueado)
+                .orElseThrow(() -> {
+                    log.error("[LOG-DASHBOARD] ❌ ERROR: El usuario '{}' no existe en familiares.", usernameLogueado);
+                    return new RuntimeException("Usuario no encontrado en la sesión");
+                });
+
+        if (familiar.getFamilia() == null) {
+            log.error("[LOG-DASHBOARD] ❌ El familiar '{}' no pertenece a ninguna familia.", usernameLogueado);
+            throw new RuntimeException("El usuario no tiene una familia asignada.");
+        }
+
+        Long familiaId = familiar.getFamilia().getId();
+        log.info("[LOG-DASHBOARD] 🏠 Multi-Tenant Activo. Familia ID vinculada: {}", familiaId);
+
+        // 3. CÁLCULOS FINANCIEROS (Aislados por familiaId)
+        BigDecimal totalAportado = controlMedicoService.calcularTotalAportado(familiaId);
+        BigDecimal totalGastado = controlMedicoService.calcularTotalGastado(familiaId);
+        BigDecimal balanceDisponible = controlMedicoService.calcularBalanceDisponible(familiaId);
+        BigDecimal cuotaFamiliar = controlMedicoService.calcularCuotaFamiliar(familiaId);
+
+        // 4. MOVIMIENTOS PAGINADOS
+        Page<Movimiento> paginaMovimientos = controlMedicoService.obtenerMovimientosPorFamiliaPaginado(familiaId, page);
+
+        // 5. INYECCIÓN DE DATOS COMUNES AL MODELO
+        model.addAttribute("totalAportado", totalAportado);
+        model.addAttribute("totalGastado", totalGastado);
+        model.addAttribute("balanceDisponible", balanceDisponible);
+        model.addAttribute("cuotaFamiliar", cuotaFamiliar);
+        model.addAttribute("movimientos", paginaMovimientos.getContent());
+        model.addAttribute("currentPage", page);
+        model.addAttribute("totalPages", paginaMovimientos.getTotalPages());
+        model.addAttribute("familiar", familiar);
+        model.addAttribute("familiares", familiarRepository.findByFamiliaId(familiaId));
+        model.addAttribute("categorias", categoriaRepository.findAll());
+
+        // ✔️ Inicialización correcta y única del objeto para el formulario
+        Movimiento nuevoMovimiento = new Movimiento();
+        nuevoMovimiento.setFamiliar(new Familiar());
+        nuevoMovimiento.setCategoria(new Categoria());
+        model.addAttribute("nuevoMovimiento", nuevoMovimiento);
+
+        model.addAttribute("esSysAdmin", false);
+
+        // 6. CONTROL DE ACCESO POR ROLES EN LA VISTA
+        if (roles.contains("ROLE_ADMIN")) {
+            log.info(
+                    "[LOG-DASHBOARD] 🛡️ Usuario es ADMINISTRADOR de la familia. Renderizando panel de control total.");
+            // ❌ ELIMINADA la línea: model.addAttribute("nuevoMovimiento", new
+            // Movimiento());
+            return "dashboard-admin";
+        } else if (roles.contains("ROLE_FAMILIAR")) {
+            log.info("[LOG-DASHBOARD] 👥 Usuario es FAMILIAR estándar. Renderizando panel de solo lectura.");
+            return "dashboard-admin";
+        }
+
+        log.warn("[LOG-DASHBOARD] Usuario sin rol válido.");
+        return "redirect:/login";
+    }
+
+    // --- ENDPOINT 1: PANTALLA DE SELECCIÓN DE FAMILIARES ---
+    @GetMapping("/reporte")
+    public String irAPantallaReporteIndividual(Authentication authentication, Model model) {
+        log.info("[LOG-REPORTE] ──> Cargando pantalla de selección de aportadores");
+        if (authentication == null)
+            return "redirect:/login";
+
+        String usernameLogueado = authentication.getName();
+        Familiar familiar = familiarRepository.findByUsername(usernameLogueado)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        // Filtrar miembros APORTADORES de su misma familia
+        List<Familiar> aportadores = familiarRepository.findByFamiliaAndTipoMembresia(
+                familiar.getFamilia(),
+                TipoMembresia.APORTADOR);
+
+        model.addAttribute("miembros", aportadores);
+        model.addAttribute("familiar", familiar);
+
+        return "reporte-individual";
+    }
+
+    // --- ENDPOINT 2: DESCARGA DE PDF INDIVIDUAL ---
+    @GetMapping("/reporte/descargar/{id}")
+    public ResponseEntity<byte[]> descargarReporteMiembroSeleccionado(@PathVariable("id") Long familiarId,
+            Authentication authentication) {
+        log.info("[LOG-REPORTE] ──> Solicitud de descarga de PDF para familiar ID: {}", familiarId);
+        if (authentication == null)
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+
+        try {
+            Familiar familiarDestino = familiarRepository.findById(familiarId)
+                    .orElseThrow(() -> new RuntimeException("Miembro de la familia no encontrado"));
+
+            Long familiaId = familiarDestino.getFamilia().getId();
+
+            // 1. Obtener datos financieros necesarios para el formato
+            BigDecimal totalGastosGrupo = controlMedicoService.calcularTotalGastado(familiaId);
+
+            long totalMiembros = familiarRepository.countByFamiliaAndTipoMembresia(
+                    familiarDestino.getFamilia(),
+                    TipoMembresia.APORTADOR);
+            if (totalMiembros == 0)
+                totalMiembros = 1;
+
+            List<Movimiento> aportaciones = movimientoRepository.findByFamiliarIdAndTipo(familiarId, "APORTACION");
+
+            // 2. Invocar al método optimizado para generar el PDF
+            byte[] pdfBytes = generarPdf(familiarDestino, totalGastosGrupo, totalMiembros, aportaciones);
+
+            // 3. Responder con el archivo para su descarga
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDisposition(ContentDisposition.builder("attachment")
+                    .filename("Reporte_" + familiarDestino.getNombre().replace(" ", "_") + "_"
+                            + java.time.LocalDate.now() + ".pdf")
+                    .build());
+
+            return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
+
+        } catch (Exception e) {
+            log.error("[LOG-REPORTE] ❌ Error al procesar la descarga del reporte: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    // =========================================================================
+    // MÉTODO OPTIMIZADO Y REUTILIZABLE PARA LA GENERACIÓN DEL PDF
+    // =========================================================================
+    private byte[] generarPdf(Familiar familiar, BigDecimal totalGastosGrupo, long totalMiembros,
+            List<Movimiento> aportaciones) throws Exception {
+
+        // --- 1. Cálculos de Negocio Internos ---
+        BigDecimal cuotaIndividual = totalGastosGrupo.divide(BigDecimal.valueOf(totalMiembros), 2,
+                RoundingMode.HALF_UP);
+
+        BigDecimal totalAportadoFamiliar = BigDecimal.ZERO;
+        if (aportaciones != null) {
+            for (Movimiento mov : aportaciones) {
+                if (mov != null && mov.getMonto() != null) {
+                    totalAportadoFamiliar = totalAportadoFamiliar.add(mov.getMonto());
+                }
+            }
+        }
+
+        BigDecimal cantidadFaltante = cuotaIndividual.subtract(totalAportadoFamiliar);
+
+        // --- 2. Inicialización del Documento (OpenPDF) ---
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        Document document = new Document(PageSize.A4, 36, 36, 36, 36); // Márgenes de 0.5 in (36pt)
+        PdfWriter.getInstance(document, out);
+
+        document.open();
+
+        // --- 3. Estilos y Fuentes ---
+        Font fontTitulo = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14, Font.BOLD);
+        Font fontSubtitulo = FontFactory.getFont(FontFactory.HELVETICA, 10, Font.NORMAL);
+        Font fontSeccion = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11, Font.BOLD);
+        Font fontTablaHeader = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, Font.BOLD);
+        Font fontTablaData = FontFactory.getFont(FontFactory.HELVETICA, 9, Font.NORMAL);
+
+        // --- 4. Encabezados de la Página ---
+        Paragraph titulo = new Paragraph("REPORTE INDIVIDUAL - CONTROL MÉDICO", fontTitulo);
+        titulo.setAlignment(Element.ALIGN_LEFT);
+        document.add(titulo);
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        Paragraph fechaEmision = new Paragraph("Fecha de emisión : " + java.time.LocalDate.now().format(formatter),
+                fontSubtitulo);
+        document.add(fechaEmision);
+
+        Paragraph solicitadoPor = new Paragraph("Reporte Solicitado por: " + familiar.getNombre(), fontSubtitulo);
+        document.add(solicitadoPor);
+
+        document.add(new Paragraph(" ")); // Espacio
+
+        // --- 5. TABLA 1: Resumen de Conceptos Globales ---
+        PdfPTable tablaConceptos = new PdfPTable(2);
+        tablaConceptos.setWidthPercentage(100);
+        tablaConceptos.setWidths(new float[] { 3.5f, 1.5f });
+
+        // Headers Tabla 1
+        tablaConceptos.addCell(crearCeldaHeader("Concepto Global", fontTablaHeader));
+        tablaConceptos.addCell(crearCeldaHeader("Monto ($)", fontTablaHeader));
+
+        // Datos Tabla 1
+        tablaConceptos.addCell(crearCeldaComun("Total de Gastos Médicos del Grupo:", fontTablaData));
+        tablaConceptos.addCell(crearCeldaComun("$" + totalGastosGrupo, fontTablaData));
+
+        tablaConceptos.addCell(
+                crearCeldaComun("Cantidad que le corresponde aportar (Total / " + totalMiembros + "):", fontTablaData));
+        tablaConceptos.addCell(crearCeldaComun("$" + cuotaIndividual, fontTablaData));
+
+        tablaConceptos.addCell(crearCeldaComun("Total que has aportado a la fecha:", fontTablaData));
+        tablaConceptos.addCell(crearCeldaComun("$" + totalAportadoFamiliar, fontTablaData));
+
+        tablaConceptos.addCell(crearCeldaComun("CANTIDAD FALTANTE POR COMPLETAR:", fontTablaData));
+        tablaConceptos.addCell(crearCeldaComun("$" + cantidadFaltante, fontTablaData));
+
+        document.add(tablaConceptos);
+
+        document.add(new Paragraph(" "));
+        document.add(new Paragraph(" "));
+
+        // --- 6. TABLA 2: Historial de Aportaciones ---
+        Paragraph seccionAportaciones = new Paragraph("HISTORIAL DE APORTACIONES RECAUDADAS", fontSeccion);
+        document.add(seccionAportaciones);
+        document.add(new Paragraph(" "));
+
+        PdfPTable tablaAportaciones = new PdfPTable(3);
+        tablaAportaciones.setWidthPercentage(100);
+        tablaAportaciones.setWidths(new float[] { 1.5f, 3.5f, 1.5f });
+
+        // Headers Tabla 2
+        tablaAportaciones.addCell(crearCeldaHeader("Fecha", fontTablaHeader));
+        tablaAportaciones.addCell(crearCeldaHeader("Descripción", fontTablaHeader));
+        tablaAportaciones.addCell(crearCeldaHeader("Monto Aportado", fontTablaHeader));
+
+        // Datos Tabla 2
+        if (aportaciones == null || aportaciones.isEmpty()) {
+            PdfPCell celdaVacia = new PdfPCell(
+                    new Paragraph("No se registran aportaciones para este miembro a la fecha.", fontTablaData));
+            celdaVacia.setColspan(3);
+            celdaVacia.setPadding(8);
+            celdaVacia.setHorizontalAlignment(Element.ALIGN_CENTER);
+            tablaAportaciones.addCell(celdaVacia);
+        } else {
+            for (Movimiento mov : aportaciones) {
+                if (mov != null) {
+                    String fechaStr = mov.getFecha() != null ? mov.getFecha().toString() : "";
+                    String descStr = mov.getDescripcion() != null ? mov.getDescripcion() : "";
+                    String montoStr = mov.getMonto() != null ? "$" + mov.getMonto() : "$0.00";
+
+                    tablaAportaciones.addCell(crearCeldaComun(fechaStr, fontTablaData));
+                    tablaAportaciones.addCell(crearCeldaComun(descStr, fontTablaData));
+                    tablaAportaciones.addCell(crearCeldaComun(montoStr, fontTablaData));
+                }
+            }
+        }
+
+        document.add(tablaAportaciones);
+        document.close();
+
+        return out.toByteArray();
+    }
+
+    // Métodos de ayuda para formatear las celdas rápidamente
+    private PdfPCell crearCeldaHeader(String texto, Font font) {
+        PdfPCell cell = new PdfPCell(new Paragraph(texto, font));
+        cell.setPadding(6);
+        cell.setBackgroundColor(java.awt.Color.LIGHT_GRAY); // Opcional: fondo gris claro para los encabezados de tabla
+        return cell;
+    }
+
+    private PdfPCell crearCeldaComun(String texto, Font font) {
+        PdfPCell cell = new PdfPCell(new Paragraph(texto, font));
+        cell.setPadding(6);
+        return cell;
+    }
+
+    @PostMapping("/movimientos/guardar")
+    public String guardarMovimiento(@ModelAttribute("nuevoMovimiento") Movimiento movimiento,
+            BindingResult result,
+            Authentication authentication,
+            RedirectAttributes redirectAttributes) {
+
+        log.info("[LOG-CATEGORIA-DIAGNOSTICO] 🔍 1. Entrada al endpoint guardarMovimiento.");
+
+        // --- LOGS DE BINDING INICIAL ---
+        if (movimiento != null) {
+            log.info("[LOG-CATEGORIA-DIAGNOSTICO] Tipo recibido: '{}'", movimiento.getTipo());
+            log.info("[LOG-CATEGORIA-DIAGNOSTICO] Categoria: '{}'", movimiento.getCategoria());
+            log.info("[LOG-CATEGORIA-DIAGNOSTICO] Monto recibido: '{}'", movimiento.getMonto());
+            log.info("[LOG-CATEGORIA-DIAGNOSTICO] Descripción recibida: '{}'", movimiento.getDescripcion());
+
+            if (movimiento.getCategoria() != null) {
+                log.info("[LOG-CATEGORIA-DIAGNOSTICO] Objeto Categoria NO es null. ID de categoría en binding: {}",
+                        movimiento.getCategoria().getId());
+            } else {
+                log.warn("[LOG-CATEGORIA-DIAGNOSTICO] ⚠️ El objeto Categoria recibido en el @ModelAttribute es NULL.");
+            }
+        } else {
+            log.error("[LOG-CATEGORIA-DIAGNOSTICO] ❌ El objeto Movimiento recibido es completamente NULL.");
+        }
+
+        // 1. Validar errores de binding de Spring
+        if (result.hasErrors()) {
+            log.error("[LOG-MOVIMIENTO] ❌ Error de binding en el formulario: {}", result.getAllErrors());
+            redirectAttributes.addFlashAttribute("mensajeError", "Datos del formulario inválidos.");
+            return "redirect:/";
+        }
+
+        try {
+            if (authentication == null) {
+                log.warn("[LOG-CATEGORIA-DIAGNOSTICO] Autenticación nula. Redirigiendo a login.");
+                return "redirect:/login";
+            }
+
+            String username = authentication.getName();
+            Familiar administradorLogueado = familiarRepository.findByUsername(username)
+                    .orElseThrow(() -> new RuntimeException("Administrador no encontrado"));
+
+            // REFUERZO DE SEGURIDAD: Solo el administrador de la familia puede guardar
+            // movimientos
+            if (Boolean.FALSE.equals(administradorLogueado.getAdministrador())) {
+                log.warn("[LOG-CATEGORIA-DIAGNOSTICO] ⚠️ Acceso no autorizado para: {}", username);
+                return "redirect:/access-denied";
+            }
+
+            // 1. Verificación de seguridad inicial (Evita el NullPointerException de raíz)
+            if (movimiento == null) {
+                log.error("[LOG-MOVIMIENTO] ❌ El objeto movimiento recibido en el controlador es NULL.");
+                redirectAttributes.addFlashAttribute("mensajeError", "El movimiento no pudo ser procesado.");
+                return "redirect:/";
+            }
+
+            // 2. Obtener el familiar seleccionado en el modal del formulario de forma
+            // segura
+            if (movimiento.getFamiliar() == null || movimiento.getFamiliar().getId() == null) {
+                log.warn("[LOG-MOVIMIENTO] ⚠️ Intento de guardar sin especificar un familiar.");
+                throw new RuntimeException("Debe seleccionar un familiar válido.");
+            }
+            Familiar familiarSeleccionado = familiarRepository.findById(movimiento.getFamiliar().getId())
+                    .orElseThrow(() -> new RuntimeException("El familiar seleccionado no existe."));
+
+            // 3. Vincular familiar y familia del administrador
+            movimiento.setFamiliar(familiarSeleccionado);
+            movimiento.setFamilia(administradorLogueado.getFamilia());
+
+            if (movimiento.getFecha() == null) {
+                movimiento.setFecha(java.time.LocalDate.now());
+            }
+
+            // 4. PERSISTENCIA DE CATEGORÍA CON LOGS DETALLADOS
+            log.info("[LOG-CATEGORIA-DIAGNOSTICO] ⚡ Evaluando condicional de Tipo de Movimiento: '{}'",
+                    movimiento.getTipo());
+
+            if ("APORTACION".equals(movimiento.getTipo())) {
+                log.info("[LOG-CATEGORIA-DIAGNOSTICO] Tipo es APORTACION. Forzando categoría a NULL.");
+                movimiento.setCategoria(null);
+            } else if ("GASTO".equals(movimiento.getTipo())) {
+                log.info("[LOG-CATEGORIA-DIAGNOSTICO] Tipo es GASTO. Procesando categoría...");
+
+                if (movimiento.getCategoria() != null && movimiento.getCategoria().getId() != null) {
+                    Long catId = movimiento.getCategoria().getId();
+                    log.info(
+                            "[LOG-CATEGORIA-DIAGNOSTICO] Intentando buscar Categoría con ID: {} en la Base de Datos...",
+                            catId);
+
+                    Categoria categoriaPersistida = categoriaRepository.findById(catId)
+                            .orElse(null);
+
+                    if (categoriaPersistida != null) {
+                        log.info("[LOG-CATEGORIA-DIAGNOSTICO] ¡Categoría encontrada con éxito! Nombre: '{}'",
+                                categoriaPersistida.getNombre());
+                        movimiento.setCategoria(categoriaPersistida);
+                    } else {
+                        log.error("[LOG-CATEGORIA-DIAGNOSTICO] ❌ La categoría con ID {} NO EXISTE en la base de datos.",
+                                catId);
+                        movimiento.setCategoria(null);
+                    }
+                } else {
+                    log.warn(
+                            "[LOG-CATEGORIA-DIAGNOSTICO] ⚠️ Se envió un GASTO pero el ID de categoría llegó vacío/nulo.");
+                    movimiento.setCategoria(null);
+                }
+            }
+
+            // Log de estado final previo a guardar
+            log.info(
+                    "[LOG-MOVIMIENTO] 💾 Guardando en DB -> Tipo: '{}', Familiar: '{}', Categoria asignada final: '{}', Monto: ${}",
+                    movimiento.getTipo(),
+                    movimiento.getFamiliar() != null ? movimiento.getFamiliar().getNombre() : "NULO",
+                    movimiento.getCategoria() != null
+                            ? movimiento.getCategoria().getNombre() + " (ID: " + movimiento.getCategoria().getId() + ")"
+                            : "NINGUNA (NULL)",
+                    movimiento.getMonto());
+
+            // 5. Guardar en la Base de Datos
+            Movimiento guardado = movimientoRepository.save(movimiento);
+            log.info(
+                    "[LOG-CATEGORIA-DIAGNOSTICO] ✅ ¡Persistencia completada! ID asignado por DB: {}. Categoria en objeto guardado: '{}'",
+                    guardado.getId(),
+                    guardado.getCategoria() != null ? guardado.getCategoria().getNombre() : "NULL");
+
+            redirectAttributes.addFlashAttribute("mensajeExito", "Movimiento guardado con éxito.");
+
+        } catch (Exception e) {
+            log.error("[LOG-MOVIMIENTO] ❌ Error fatal al guardar el movimiento: ", e);
+            redirectAttributes.addFlashAttribute("mensajeError", "No se pudo guardar el movimiento: " + e.getMessage());
+        }
+
+        return "redirect:/";
+    }
+
+    @PostMapping("/movimientos/eliminar")
+    public String eliminarMovimiento(@RequestParam("id") Long id) {
+        controlMedicoService.eliminarMovimiento(id);
+        return "redirect:/"; // Redirecciona al Dashboard para ver los cambios
+    }
+}
+=== ARCHIVO: src/main/java/com/control/medico/controlmedico/controller/FamiliaController.java ===
+
+package com.control.medico.controlmedico.controller;
+
+import com.control.medico.controlmedico.model.Familiar;
+import com.control.medico.controlmedico.model.Rol;
+import com.control.medico.controlmedico.repository.FamiliarRepository;
+import com.control.medico.controlmedico.repository.RolRepository;
+import org.springframework.stereotype.Controller;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Optional;
+
+@Controller
+@RequestMapping("/familia")
+public class FamiliaController {
+
+    private final FamiliarRepository familiarRepository;
+    private final RolRepository rolRepository; // 1. Inyectamos el nuevo repositorio
+
+    // Actualizamos el constructor
+    FamiliaController(FamiliarRepository familiarRepository, RolRepository rolRepository) {
+        this.familiarRepository = familiarRepository;
+        this.rolRepository = rolRepository;
+    }
+
+    // 1. GUARDAR O EDITAR MIEMBRO FAMILIAR
+    @PostMapping("/guardar")
+    public String guardarMiembro(@ModelAttribute Familiar familiar) {
+        if (familiar.getId() == null) {
+            long conteo = familiarRepository.count();
+            
+            // Buscamos el objeto Rol correspondiente desde la BD
+            Rol rolAsignado = rolRepository.findByDescripcion(conteo == 0 ? "ROLE_ADMIN" : "ROLE_FAMILIAR")
+                    .orElseThrow(() -> new RuntimeException("Error: El Rol especificado no existe en la base de datos."));
+            
+            familiar.setRole(rolAsignado);
+        } else {
+            // Preservamos el rol existente cargándolo de la base de datos
+            Optional<Familiar> existente = familiarRepository.findById(familiar.getId());
+            existente.ifPresent(f -> familiar.setRole(f.getRole()));
+        }
+        
+        familiarRepository.save(familiar);
+        return "redirect:/";
+    }
+
+    // 2. PROCESO DE HEREDAR EL ROL ÚNICO DE ADMINISTRADOR
+    @PostMapping("/heredar/{id}")
+    @Transactional
+    public String heredarAdministrador(@PathVariable("id") Long nuevoAdminId) {
+        // Obtenemos las entidades de los roles desde la BD para asegurar consistencia
+        Rol rolFamiliar = rolRepository.findByDescripcion("ROLE_FAMILIAR")
+                .orElseThrow(() -> new RuntimeException("Rol ROLE_FAMILIAR no encontrado"));
+        Rol rolAdmin = rolRepository.findByDescripcion("ROLE_ADMIN")
+                .orElseThrow(() -> new RuntimeException("Rol ROLE_ADMIN no encontrado"));
+
+        // A. Buscamos si existe alguien con el rol de ADMIN actualmente y lo bajamos a familiar
+        familiarRepository.findAll().stream()
+            .filter(f -> f.getRole() != null && "ROLE_ADMIN".equalsIgnoreCase(f.getRole().getDescripcion()))
+            .forEach(f -> {
+                f.setRole(rolFamiliar);
+                familiarRepository.save(f);
+            });
+        
+        // B. Le otorgamos el rol de ADMIN de forma única al nuevo ID seleccionado
+        Optional<Familiar> nuevoAdmin = familiarRepository.findById(nuevoAdminId);
+        if (nuevoAdmin.isPresent()) {
+            Familiar familiar = nuevoAdmin.get();
+            familiar.setRole(rolAdmin);
+            familiarRepository.save(familiar);
+        }
+        
+        return "redirect:/login?logout=true"; 
+    }
+
+    // 3. ELIMINAR UN MIEMBRO
+    @PostMapping("/eliminar/{id}")
+    public String eliminarMiembro(@PathVariable("id") Long id) {
+        Optional<Familiar> familiar = familiarRepository.findById(id);
+        
+        // Modificación de la regla de seguridad evaluando la descripción del objeto Rol
+        if (familiar.isPresent() && 
+            familiar.get().getRole() != null && 
+            !"ROLE_ADMIN".equalsIgnoreCase(familiar.get().getRole().getDescripcion())) {
+            
+            familiarRepository.deleteById(id);
+        }
+        return "redirect:/";
+    }
+}
+=== ARCHIVO: src/main/java/com/control/medico/controlmedico/SecurityConfig.java ===
+
+package com.control.medico.controlmedico;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.AccessDeniedHandler;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import java.io.IOException;
+
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
+
+    private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        log.info("[LOG-SECURITY-INIT] ⚙️ Cargando la cadena de filtros de Spring Security...");
+
+        http
+                // Desactivamos CSRF temporalmente para pruebas locales
+                .csrf(csrf -> csrf.disable())
+                
+                // 1. FILTRO DE LOGS PERSONALIZADO (Muestra qué URL entra al sistema de seguridad)
+                .addFilterBefore(new Filter() {
+                    @Override
+                    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) 
+                            throws IOException, jakarta.servlet.ServletException {
+                        HttpServletRequest req = (HttpServletRequest) request;
+                        log.info("[LOG-HTTP-REQUEST] 🌐 Entrando Petición -> Método: [{}], URI: [{}]", req.getMethod(), req.getRequestURI());
+                        chain.doFilter(request, response);
+                    }
+                }, BasicAuthenticationFilter.class)
+
+                // 2. CONFIGURACIÓN DE AUTORIZACIONES
+                .authorizeHttpRequests(auth -> auth
+                        // Recursos públicos indispensables
+                        .requestMatchers("/login", "/css/**", "/js/**").permitAll()
+
+                        // 🔄 MODIFICACIÓN AQUÍ: Permitimos el paso a ambos roles para las rutas de administración compartidas
+                        .requestMatchers("/sys-admin/**").hasAnyAuthority("ROLE_SYS_ADMIN", "ROLE_ADMIN")
+                        .requestMatchers("/familia/**").hasAuthority("ROLE_ADMIN")
+                        
+                        // La raíz "/" debe estar autenticada para permitir que el controlador decida la redirección por rol
+                        .requestMatchers("/").authenticated()
+                        .requestMatchers("/reporte/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_FAMILIAR")
+
+                        // Cualquier otra ruta interna requiere estar logueado
+                        .anyRequest().authenticated())
+                
+                // 3. LOGS DE INICIO DE SESIÓN EXITOSO
+                .formLogin(form -> form
+                        .loginPage("/login")
+                        .successHandler(customSuccessHandler()) // Manejador con logs integrados
+                        .permitAll())
+                
+                // 4. LOGS DE ACCESOS DENEGADOS (Para atrapar los errores 403)
+                .exceptionHandling(exception -> exception
+                        .accessDeniedHandler(customAccessDeniedHandler()))
+                
+                .logout(logout -> logout.permitAll());
+
+        return http.build();
+    }
+
+    // Bean del manejador de éxito en el login
+    @Bean
+    public AuthenticationSuccessHandler customSuccessHandler() {
+        return (request, response, authentication) -> {
+            String username = authentication.getName();
+            Object authorities = authentication.getAuthorities();
+            log.info("[LOG-SECURITY-SUCCESS] 🎉 Autenticación EXITOSA. Usuario: '{}' | Authorities asignadas: {}", username, authorities);
+            
+            // Decisión inteligente y limpia de redirección basada en la Authority textual
+            if (authorities.toString().contains("ROLE_SYS_ADMIN")) {
+                log.info("[LOG-SECURITY-SUCCESS] 🔀 Redireccionando automáticamente a /sys-admin/dashboard");
+                response.sendRedirect("/sys-admin/dashboard");
+            } else {
+                log.info("[LOG-SECURITY-SUCCESS] 🔀 Redireccionando automáticamente al Home raíz (/)");
+                response.sendRedirect("/");
+            }
+        };
+    }
+
+    // Bean para capturar e imprimir logs de los errores 403
+    @Bean
+    public AccessDeniedHandler customAccessDeniedHandler() {
+        return (request, response, accessDeniedException) -> {
+            log.error("[LOG-SECURITY-403] ❌ ACCESO RECHAZADO (403 Forbidden) para la URL: '{}'", request.getRequestURI());
+            log.error("[LOG-SECURITY-403] 💡 Detalle del rechazo: {}", accessDeniedException.getMessage());
+            response.sendRedirect("/login?error=true");
+        };
+    }
+
+    @SuppressWarnings("deprecation")
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return org.springframework.security.crypto.password.NoOpPasswordEncoder.getInstance();
+    }
+}
+=== ARCHIVO: src/main/java/com/control/medico/controlmedico/repository/FamiliarRepository.java ===
+
+package com.control.medico.controlmedico.repository;
+
+import com.control.medico.controlmedico.model.Familia;
+import com.control.medico.controlmedico.model.Familiar;
+import com.control.medico.controlmedico.model.TipoMembresia;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import java.util.List;
+
+import java.util.Optional;
+
+public interface FamiliarRepository extends JpaRepository<Familiar, Long> {
+    // Hereda todos los métodos CRUD básicos sin warnings
+    Optional<Familiar> findByUsername(String username);
+
+    // Cuenta cuántos familiares pertenecen a una familia específica Y tienen el rol de APORTADOR
+    long countByFamiliaIdAndTipoMembresia(Long familiaId, TipoMembresia tipoMembresia);
+
+    @Modifying
+    @Query("UPDATE Familiar f SET f.role = (SELECT r FROM Rol r WHERE r.descripcion = 'ROLE_FAMILIAR') WHERE f.role.descripcion = 'ROLE_ADMIN'")
+    void quitarAdministradorActual();
+
+    // Obtener los miembros de una familia específica de forma paginada o en lista
+    List<Familiar> findByFamiliaId(Long familiaId);
+    
+    long countByFamiliaId(Long familiaId);
+
+    // Método nuevo para filtrar por la Familia y el tipo de membresía "APORTADOR"
+    List<Familiar> findByFamiliaIdAndTipoMembresia(Long familiaId, String tipoMembresia);
+
+    // Buscar los familiares que pertenecen a una familia específica y tienen cierto tipo de membresía
+    List<Familiar> findByFamiliaAndTipoMembresia(Familia familia, TipoMembresia tipoMembresia);
+
+    // MÉTODO NUEVO: Cuenta todos los miembros asociados a un objeto Familia
+    long countByFamilia(Familia familia);
+
+    long countByFamiliaAndTipoMembresia(Familia familia, TipoMembresia tipoMembresia);
+    
+}
+=== ARCHIVO: src/main/java/com/control/medico/controlmedico/repository/FamiliaRepository.java ===
+
+package com.control.medico.controlmedico.repository;
+
+import com.control.medico.controlmedico.model.Familia;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface FamiliaRepository extends JpaRepository<Familia, Long> {
+    
+    // Consulta optimizada para la vista de SYS_ADMIN con paginación
+    Page<Familia> findAllByOrderByFechaCreacionDesc(Pageable pageable);
+}
+
+=== ARCHIVO: src/main/java/com/control/medico/controlmedico/repository/MovimientoRepository.java ===
+
+package com.control.medico.controlmedico.repository;
+
+import com.control.medico.controlmedico.model.Movimiento;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import java.math.BigDecimal;
+import java.util.List;
+
+public interface MovimientoRepository extends JpaRepository<Movimiento, Long> {
+
+    Page<Movimiento> findByFamiliarFamiliaIdOrderByFechaDescIdAsc(Long familiaId, Pageable pageable);
+
+    @Query("SELECT COALESCE(SUM(m.monto), 0) FROM Movimiento m WHERE m.tipo = 'APORTACION' AND m.familiar.familia.id = :familiaId")
+    BigDecimal sumAportacionesByFamilia(@Param("familiaId") Long familiaId);
+
+    @Query("SELECT COALESCE(SUM(m.monto), 0) FROM Movimiento m WHERE m.tipo = 'GASTO' AND m.familiar.familia.id = :familiaId")
+    BigDecimal sumGastosByFamilia(@Param("familiaId") Long familiaId);
+
+    Page<Movimiento> findAllByOrderByFechaDescIdAsc(Pageable pageable);
+
+    @Query("SELECT COALESCE(SUM(m.monto), 0) FROM Movimiento m WHERE m.tipo = 'APORTACION'")
+    BigDecimal sumTotalAportaciones();
+
+    @Query("SELECT COALESCE(SUM(m.monto), 0) FROM Movimiento m WHERE m.tipo = 'GASTO'")
+    BigDecimal sumTotalGastos();
+
+    @Query("SELECT m FROM Movimiento m WHERE m.familiar.id = :familiarId ORDER BY m.fecha DESC, m.id ASC")
+    List<Movimiento> findByFamiliarIdOrderByFechaDesc(@Param("familiarId") Long familiarId);
+
+    @Query("SELECT COALESCE(SUM(m.monto), 0) FROM Movimiento m WHERE m.tipo = 'APORTACION' AND m.familiar.id = :familiarId")
+    BigDecimal sumAportacionesByFamiliar(@Param("familiarId") Long familiarId);
+
+    @Query("SELECT COALESCE(SUM(m.monto), 0) FROM Movimiento m WHERE m.tipo = 'GASTO' AND m.familiar.id = :familiarId")
+    BigDecimal sumGastosByFamiliar(@Param("familiarId") Long familiarId);
+
+    // MÉTODO NUEVO: Recupera las aportaciones de un miembro usando su familiar ID y el tipo ('APORTACION')
+    List<Movimiento> findByFamiliarIdAndTipo(Long familiarId, String tipo);
+}
+=== ARCHIVO: src/main/java/com/control/medico/controlmedico/repository/RolRepository.java ===
+
+package com.control.medico.controlmedico.repository;
+
+import com.control.medico.controlmedico.model.Rol;
+import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.Optional;
+
+public interface RolRepository extends JpaRepository<Rol, Integer> {
+    Optional<Rol> findByDescripcion(String descripcion);
+}
+
+=== ARCHIVO: src/main/java/com/control/medico/controlmedico/repository/CategoriaRepository.java ===
+
+package com.control.medico.controlmedico.repository;
+
+import com.control.medico.controlmedico.model.Categoria;
+import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.Optional;
+
+public interface CategoriaRepository extends JpaRepository<Categoria, Long> {
+    
+    // Ya incluye todos los métodos CRUD por defecto
+    Optional<Categoria> findByNombreIgnoreCase(String nombre);
+}
+=== ARCHIVO: src/main/java/com/control/medico/controlmedico/model/Categoria.java ===
+
+package com.control.medico.controlmedico.model;
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.Column;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+
+@Entity
+@Table(name = "categorias", schema = "control_medico")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Categoria {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false, unique = true, length = 100)
+    private String nombre;
+}
+
+=== ARCHIVO: src/main/java/com/control/medico/controlmedico/model/Familiar.java ===
+
+package com.control.medico.controlmedico.model;
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+
+import jakarta.persistence.Column;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+
+@Entity
+@Table(name = "familiares", schema = "control_medico")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Familiar {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false, unique = true, length = 150)
+    private String nombre;
+
+    // --- NUEVOS CAMPOS PARA SEGURIDAD MULTI-FAMILIA ---
+    @Column(unique = true, length = 50)
+    private String username;
+
+    @Column(length = 100)
+    private String password;
+    
+    // Agregar la relación hacia el nuevo objeto Rol:
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "role_id")
+    private Rol role;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo_membresia", length = 20, nullable = false)
+    private TipoMembresia tipoMembresia; // APORTADOR o BENEFICIARIO
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "familia_id")
+    private Familia familia; // Relación con la nueva tabla familias
+
+    @Column(name = "is_administrador")
+    private Boolean administrador = false;
+}
+
+=== ARCHIVO: src/main/java/com/control/medico/controlmedico/model/TipoMembresia.java ===
+
+package com.control.medico.controlmedico.model;
+
+public enum TipoMembresia {
+    APORTADOR,    // Hijo/Familiar que pone dinero
+    BENEFICIARIO  // Padre/Madre que recibe el tratamiento médico
+}
+=== ARCHIVO: src/main/java/com/control/medico/controlmedico/model/Familia.java ===
+
+package com.control.medico.controlmedico.model;
+
+import jakarta.persistence.*;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "familias", schema = "control_medico")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Familia {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false, length = 150)
+    private String nombre;
+
+    @Column(name = "codigo_acceso", nullable = false, unique = true, length = 50)
+    private String codigoAcceso;
+
+    @Column(name = "fecha_creacion")
+    private LocalDateTime fechaCreacion = LocalDateTime.now();
+
+    // se agrega columna para la administracion de superusuario
+    @Column(nullable = false)
+    private Boolean activo = true;
+
+    // --- GETTERS Y SETTERS (Si no usas Lombok) ---
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
+    public String getNombre() { return nombre; }
+    public void setNombre(String nombre) { this.nombre = nombre; }
+
+    public Boolean getActivo() { return activo; }
+    public void setActivo(Boolean activo) { this.activo = activo; }
+
+    public LocalDateTime getFechaCreacion() { return fechaCreacion; }
+    public void setFechaCreacion(LocalDateTime fechaCreacion) { this.fechaCreacion = fechaCreacion; }
+}
+
+=== ARCHIVO: src/main/java/com/control/medico/controlmedico/model/Rol.java ===
+
+package com.control.medico.controlmedico.model;
+
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "roles", schema = "control_medico")
+@Getter
+@Setter
+public class Rol {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer id;
+
+    @Column(nullable = false, unique = true, length = 50)
+    private String descripcion;
+
+    @Column(name = "fecha_creacion", updatable = false)
+    private LocalDateTime fechaCreacion;
+
+    @Column(name = "fecha_modificacion")
+    private LocalDateTime fechaModificacion;
+
+    private Boolean estatus;
+
+    @PrePersist
+    protected void onCreate() {
+        fechaCreacion = LocalDateTime.now();
+        fechaModificacion = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        fechaModificacion = LocalDateTime.now();
+    }
+}
+
+=== ARCHIVO: src/main/java/com/control/medico/controlmedico/model/Movimiento.java ===
+
+package com.control.medico.controlmedico.model;
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.Column;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.FetchType;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+
+@Entity
+@Table(name = "movimientos", schema = "control_medico")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Movimiento {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false)
+    private LocalDate fecha;
+
+    @Column(nullable = false, length = 20)
+    private String tipo; // Almacenará 'APORTACION' o 'GASTO'
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "familiar_id", nullable = false)
+    private Familiar familiar;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "categoria_id")
+    private Categoria categoria; // Puede ser null en caso de APORTACION
+
+    @Column(nullable = false, length = 255)
+    private String descripcion;
+
+    @Column(nullable = false, precision = 12, scale = 2)
+    private BigDecimal monto;
+
+    @Column(columnDefinition = "TEXT")
+    private String observaciones;
+
+    // ... dentro de tu clase Movimiento existente
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "familia_id")
+    private Familia familia;
+}
+
+=== ARCHIVO: src/main/java/com/control/medico/controlmedico/service/AdminGlobalService.java ===
+
+package com.control.medico.controlmedico.service;
+
+import com.control.medico.controlmedico.model.Familia;
+import com.control.medico.controlmedico.model.Familiar;
+import com.control.medico.controlmedico.model.Rol;
+import com.control.medico.controlmedico.repository.FamiliaRepository;
+import com.control.medico.controlmedico.repository.FamiliarRepository;
+import com.control.medico.controlmedico.repository.RolRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.crypto.password.PasswordEncoder;
+
+import java.util.List;
+
+@Service
+public class AdminGlobalService { // <-- Asegurar que se llama exactamente así
+
+    private final FamiliaRepository familiaRepository;
+    private final FamiliarRepository familiarRepository;
+    private final RolRepository rolRepository;
+    private final PasswordEncoder passwordEncoder;
+
+    public AdminGlobalService(FamiliaRepository familiaRepository,
+            FamiliarRepository familiarRepository,
+            RolRepository rolRepository,
+            PasswordEncoder passwordEncoder) {
+        this.familiaRepository = familiaRepository;
+        this.familiarRepository = familiarRepository;
+        this.rolRepository = rolRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
+
+    public Page<Familia> obtenerFamiliasPaginadas(int pagina) {
+        return familiaRepository.findAllByOrderByFechaCreacionDesc(PageRequest.of(pagina, 10));
+    }
+
+    public List<Familiar> obtenerMiembrosPorFamilia(Long familiaId) {
+        return familiarRepository.findByFamiliaId(familiaId);
+    }
+
+    @Transactional
+    public void cambiarAdministradorDeFamilia(Long familiaId, Long nuevoAdminId) {
+        Rol rolFamiliar = rolRepository.findByDescripcion("ROLE_FAMILIAR")
+                .orElseThrow(() -> new RuntimeException("Rol ROLE_FAMILIAR no configurado"));
+        Rol rolAdmin = rolRepository.findByDescripcion("ROLE_ADMIN")
+                .orElseThrow(() -> new RuntimeException("Rol ROLE_ADMIN no configurado"));
+
+        // 1. Degradamos a cualquier ADMIN viejo de ESTA familia específica basándonos en el flag booleano
+        familiarRepository.findByFamiliaId(familiaId).stream()
+                .filter(f -> f.getAdministrador() != null && f.getAdministrador())
+                .forEach(f -> {
+                    f.setAdministrador(false); // <-- CORRECCIÓN: Apaga el flag booleano en la BD
+                    f.setRole(rolFamiliar);    // <-- Cambia el role_id a 2 (ROLE_FAMILIAR)
+                    familiarRepository.save(f);
+                });
+
+        // 2. Promovemos al nuevo usuario seleccionado como Administrador de su familia
+        Familiar nuevoAdmin = familiarRepository.findById(nuevoAdminId)
+                .orElseThrow(() -> new RuntimeException("Miembro no encontrado"));
+        
+        nuevoAdmin.setAdministrador(true); // <-- CORRECCIÓN: Enciende el flag booleano en la BD
+        nuevoAdmin.setRole(rolAdmin);      // <-- Cambia el role_id a 3 (ROLE_ADMIN)
+        familiarRepository.save(nuevoAdmin);
+    }
+
+    @Transactional
+    public void cambiarEstatusFamilia(Long familiaId, Boolean estatus) {
+        Familia familia = familiaRepository.findById(familiaId)
+                .orElseThrow(() -> new RuntimeException("Familia no encontrada"));
+        familia.setActivo(estatus);
+        familiaRepository.save(familia);
+    }
+
+    @Transactional
+    public void guardarMiembroConReglas(Long familiaId, Familiar familiar) {
+        // 1. Obtener y vincular la familia objetivo
+        Familia familia = familiaRepository.findById(familiaId)
+                .orElseThrow(() -> new RuntimeException("La familia especificada no existe."));
+        familiar.setFamilia(familia);
+
+        // 2. CORREGIDO: Respetar la contraseña que se ingresó en el modal y ENCRIPTARLA
+        if (familiar.getId() == null) {
+            // Validamos que se haya escrito algo en el campo "Contraseña Temporal"
+            if (familiar.getPassword() != null && !familiar.getPassword().trim().isEmpty()) {
+                // Encriptamos la clave escrita en el frontend antes de persistir en PostgreSQL
+                familiar.setPassword(passwordEncoder.encode(familiar.getPassword().trim()));
+            } else {
+                // Si por alguna razón viene vacía, podemos dejar como respaldo el username encriptado
+                familiar.setPassword(passwordEncoder.encode(familiar.getUsername().trim()));
+            }
+        } else {
+            // Manejo en caso de edición (no modificar contraseña si no fue enviada)
+            Familiar familiarExistente = familiarRepository.findById(familiar.getId()).orElse(null);
+            if (familiarExistente != null && (familiar.getPassword() == null || familiar.getPassword().trim().isEmpty())) {
+                familiar.setPassword(familiarExistente.getPassword());
+            } else if (familiar.getPassword() != null && !familiar.getPassword().trim().isEmpty()) {
+                familiar.setPassword(passwordEncoder.encode(familiar.getPassword().trim()));
+            }
+        }
+
+        // 3. Cargar las entidades de Roles desde la base de datos
+        Rol rolAdmin = rolRepository.findByDescripcion("ROLE_ADMIN")
+                .orElseThrow(() -> new RuntimeException("Configuración ausente: Falta el rol ROLE_ADMIN"));
+        Rol rolFamiliar = rolRepository.findByDescripcion("ROLE_FAMILIAR")
+                .orElseThrow(() -> new RuntimeException("Configuración ausente: Falta el rol ROLE_FAMILIAR"));
+
+        // 4. Aplicar regla estricta de un solo administrador
+        if (familiar.getAdministrador()) {
+            // Buscamos si la familia ya cuenta con un miembro administrador activo
+            List<Familiar> integrantesActuales = familiarRepository.findByFamiliaId(familiaId);
+            for (Familiar integrante : integrantesActuales) {
+                if (integrante.getAdministrador()) {
+                    // "Degradamos" al admin anterior para conservar la unicidad
+                    integrante.setAdministrador(false);
+                    integrante.setRole(rolFamiliar);
+                    familiarRepository.save(integrante);
+                }
+            }
+            // Asignamos el rol administrativo al nuevo miembro
+            familiar.setRole(rolAdmin);
+        } else {
+            // Todos los demás miembros entran forzosamente como familiares comunes
+            familiar.setRole(rolFamiliar);
+        }
+
+        // 5. Guardar el nuevo integrante
+        familiarRepository.save(familiar);
+    }
+
+    @Transactional
+    public void eliminarMiembroConReglas(Long miembroId) {
+        Familiar familiar = familiarRepository.findById(miembroId)
+                .orElseThrow(() -> new RuntimeException("El miembro a eliminar no existe."));
+
+        // Regla de seguridad opcional: Evitar que la familia se quede sin miembros
+        // o validar si el que se elimina es el último administrador.
+        if (familiar.getAdministrador()) {
+            // Nota: Si se elimina al admin, se podría lanzar una advertencia
+            // o simplemente permitirlo y que el SysAdmin asigne a otro después.
+        }
+
+        familiarRepository.delete(familiar);
+    }
+}
+
+=== ARCHIVO: src/main/java/com/control/medico/controlmedico/service/CustomUserDetailsService.java ===
+
+package com.control.medico.controlmedico.service;
+
+import com.control.medico.controlmedico.model.Familiar;
+import com.control.medico.controlmedico.repository.FamiliarRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Collections;
+
+@Service("customUserDetailsService")
+public class CustomUserDetailsService implements UserDetailsService {
+
+    private static final Logger log = LoggerFactory.getLogger(CustomUserDetailsService.class);
+    private final FamiliarRepository familiarRepository;
+
+    public CustomUserDetailsService(FamiliarRepository familiarRepository) {
+        this.familiarRepository = familiarRepository;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        log.info("[LOG-LOGIN] ──> Iniciando intento de autenticación para el usuario: '{}'", username);
+
+        // 1. Buscar el usuario en la base de datos
+        Familiar familiar = familiarRepository.findByUsername(username)
+                .orElseThrow(() -> {
+                    log.error("[LOG-LOGIN] ❌ ERROR: El usuario '{}' no existe en la base de datos.", username);
+                    return new UsernameNotFoundException("Usuario no encontrado: " + username);
+                });
+
+        log.info("[LOG-LOGIN] ✔️ Usuario localizado con éxito en BD.");
+
+        // 2. EXTRAER EL TEXTO DE LA DESCRIPCIÓN DEL ROL (Evita el Rol@250e82f)
+        String nombreRol = "";
+        if (familiar.getRole() != null) {
+            // Asumiendo que tu entidad Rol tiene el método getDescripcion()
+            nombreRol = familiar.getRole().getDescripcion();
+        }
+
+        log.info("[LOG-LOGIN] 👉 ID: {}, Nombre: '{}', Rol extraído (Texto): '{}'",
+                familiar.getId(), familiar.getNombre(), nombreRol);
+
+        if (nombreRol == null || nombreRol.trim().isEmpty()) {
+            log.warn("[LOG-LOGIN] ⚠️ ADVERTENCIA: La descripción del rol para '{}' está vacía en la BD.", username);
+        }
+
+        // 3. Crear la autoridad limpia para Spring Security
+        SimpleGrantedAuthority authority = new SimpleGrantedAuthority(nombreRol);
+        log.info("[LOG-LOGIN] ⚙️ Autoridad asignada a Spring Security: '{}'", authority.getAuthority());
+
+        // 3.5. DETERMINAR EL ESTADO OPERATIVO DE LA FAMILIA
+        boolean cuentaHabilitada = true;
+        
+        // Evaluamos si el familiar pertenece a una familia y si está activa
+        if (familiar.getFamilia() != null) {
+            // Si la familia tiene activo = false, 'cuentaHabilitada' será false
+            cuentaHabilitada = Boolean.TRUE.equals(familiar.getFamilia().getActivo());
+            
+            if (!cuentaHabilitada) {
+                log.warn("[LOG-LOGIN] ⛔ ACCESO DENEGADO: El usuario '{}' pertenece a la familia '{}' la cual se encuentra INACTIVA.", 
+                        username, familiar.getFamilia().getNombre());
+            }
+        }
+
+        // 4. Retornar el User de Spring Security con constructor extendido
+        return new User(
+                familiar.getUsername(),
+                familiar.getPassword(),
+                cuentaHabilitada,       // enabled: aquí se bloquea si la familia está inactiva
+                true,                   // accountNonExpired
+                true,                   // credentialsNonExpired
+                true,                   // accountNonLocked
+                Collections.singletonList(authority)
+        );
+    }
+}
+=== ARCHIVO: src/main/java/com/control/medico/controlmedico/service/ControlMedicoService.java ===
+
+package com.control.medico.controlmedico.service;
+
+import com.control.medico.controlmedico.model.Categoria;
+import com.control.medico.controlmedico.model.Familiar;
+import com.control.medico.controlmedico.model.Movimiento;
+import com.control.medico.controlmedico.model.TipoMembresia;
+import com.control.medico.controlmedico.repository.CategoriaRepository;
+import com.control.medico.controlmedico.repository.FamiliarRepository;
+import com.control.medico.controlmedico.repository.MovimientoRepository;
+
+import org.springframework.data.domain.PageRequest;
+import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+@Service
+public class ControlMedicoService {
+
+    private final MovimientoRepository movimientoRepository;
+    private final FamiliarRepository familiarRepository;
+    private final CategoriaRepository categoriaRepository;
+
+    public ControlMedicoService(MovimientoRepository movimientoRepository, 
+                                FamiliarRepository familiarRepository, 
+                                CategoriaRepository categoriaRepository) {
+        this.movimientoRepository = movimientoRepository;
+        this.familiarRepository = familiarRepository;
+        this.categoriaRepository = categoriaRepository;
+    }
+
+    // --- LISTADOS Y PERSISTENCIA ---
+
+    public List<Familiar> listarFamiliares() { return familiarRepository.findAll(); }
+    public List<Categoria> listarCategorias() { return categoriaRepository.findAll(); }
+    public List<Categoria> obtenerTodasLasCategorias() { return categoriaRepository.findAll(); }
+    public List<Familiar> obtenerTodosLosFamiliares() { return familiarRepository.findAll(); }
+
+    public Movimiento guardarMovimiento(Movimiento movimiento) { return movimientoRepository.save(movimiento); }
+    public Movimiento registrarMovimiento(Movimiento movimiento) { return movimientoRepository.save(movimiento); }
+    public Familiar guardarFamiliar(Familiar familiar) { return familiarRepository.save(familiar); }
+    public void eliminarMovimiento(Long id) { movimientoRepository.deleteById(id); }
+
+    // --- CÁLCULOS FINANCIEROS POR INQUILINO (ANTI-NULL PARA SYS_ADMIN) ---
+
+    public BigDecimal calcularTotalAportado(Long familiaId) {
+        if (familiaId == null) return BigDecimal.ZERO;
+        BigDecimal total = movimientoRepository.sumAportacionesByFamilia(familiaId);
+        return total != null ? total : BigDecimal.ZERO;
+    }
+
+    public BigDecimal calcularTotalGastado(Long familiaId) {
+        if (familiaId == null) return BigDecimal.ZERO;
+        BigDecimal total = movimientoRepository.sumGastosByFamilia(familiaId);
+        return total != null ? total : BigDecimal.ZERO;
+    }
+
+    public BigDecimal calcularBalanceDisponible(Long familiaId) {
+        if (familiaId == null) return BigDecimal.ZERO;
+        return calcularTotalAportado(familiaId).subtract(calcularTotalGastado(familiaId));
+    }
+
+    public BigDecimal calcularCuotaFamiliar(Long familiaId) {
+        if (familiaId == null) return BigDecimal.ZERO;
+        BigDecimal gastoTotal = calcularTotalGastado(familiaId);
+        long cantidadAportadores = contarAportadoresPorFamilia(familiaId);
+        if (cantidadAportadores == 0) return BigDecimal.ZERO;
+        return gastoTotal.divide(BigDecimal.valueOf(cantidadAportadores), 2, RoundingMode.HALF_UP);
+    }
+
+    // --- PAGINACIÓN FILTRADA ---
+
+    public Page<Movimiento> obtenerMovimientosPorFamiliaPaginado(Long familiaId, int numeroPagina) {
+        Pageable pageable = PageRequest.of(numeroPagina, 10);
+        if (familiaId == null) return Page.empty(pageable);
+        return movimientoRepository.findByFamiliarFamiliaIdOrderByFechaDescIdAsc(familiaId, pageable);
+    }
+
+    // --- REPORTES INDIVIDUALES Y TOTALES GLOBALES ---
+
+    public List<Movimiento> obtenerMovimientosPorFamiliar(Long familiarId) {
+        return movimientoRepository.findByFamiliarIdOrderByFechaDesc(familiarId);
+    }
+
+    public Map<String, BigDecimal> obtenerResumenFinancieroPorFamiliar(Long familiarId) {
+        BigDecimal aportado = movimientoRepository.sumAportacionesByFamiliar(familiarId);
+        BigDecimal gastado = movimientoRepository.sumGastosByFamiliar(familiarId);
+        BigDecimal balanceIndividual = (aportado != null ? aportado : BigDecimal.ZERO)
+                .subtract(gastado != null ? gastado : BigDecimal.ZERO);
+
+        Map<String, BigDecimal> resumen = new HashMap<>();
+        resumen.put("aportado", aportado != null ? aportado : BigDecimal.ZERO);
+        resumen.put("gastado", gastado != null ? gastado : BigDecimal.ZERO);
+        resumen.put("balance", balanceIndividual);
+        return resumen;
+    }
+
+    public Map<String, BigDecimal> obtenerResumenFinancieroGlobal() {
+        BigDecimal aportado = movimientoRepository.sumTotalAportaciones();
+        BigDecimal gastado = movimientoRepository.sumTotalGastos();
+        BigDecimal totalAportado = aportado != null ? aportado : BigDecimal.ZERO;
+        BigDecimal totalGastado = gastado != null ? gastado : BigDecimal.ZERO;
+
+        Map<String, BigDecimal> resumen = new HashMap<>();
+        resumen.put("aportado", totalAportado);
+        resumen.put("gastado", totalGastado);
+        resumen.put("balance", totalAportado.subtract(totalGastado));
+        return resumen;
+    }
+
+    public Page<Movimiento> obtenerTodosLosMovimientos(int numeroPagina) {
+        Pageable pageable = PageRequest.of(numeroPagina, 10);
+        return movimientoRepository.findAllByOrderByFechaDescIdAsc(pageable);
+    }
+
+    public Optional<Familiar> obtenerFamiliarPorId(Long id) { return familiarRepository.findById(id); }
+
+    public long contarAportadoresPorFamilia(Long familiaId) {
+        if (familiaId == null) return 0;
+        return familiarRepository.countByFamiliaIdAndTipoMembresia(familiaId, TipoMembresia.APORTADOR);
+    }
+}
+=== ARCHIVO: src/main/java/com/control/medico/controlmedico/ControlmedicoApplication.java ===
+
+package com.control.medico.controlmedico;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class ControlmedicoApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(ControlmedicoApplication.class, args);
+	}
+
+}
+=== ARCHIVO: src/main/resources/templates/reporte-individual.html ===
+
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte Individual - Selección</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+</head>
+<body class="bg-light">
+
+    <!-- NAVBAR RESPONSIVO -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4 shadow-sm">
+        <div class="container">
+            <a class="navbar-brand" href="/">⚕️ Control Médico Familiar</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarReporte" aria-controls="navbarReporte" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse justify-content-end mt-2 mt-lg-0" id="navbarReporte">
+                <span class="navbar-text text-white bg-white bg-opacity-25 px-3 py-1 rounded-pill" th:text="'Sesión: ' + ${familiar.nombre}">Usuario</span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="card shadow-sm border-0">
+            <!-- CABECERA DE CARD FLEXIBLE -->
+            <div class="card-header bg-white py-3 d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3">
+                <div>
+                    <h4 class="mb-0 text-primary fs-5"><i class="bi bi-people-fill me-2"></i>Miembros Aportadores</h4>
+                    <p class="text-muted small mb-0 mt-1">Seleccione el miembro de la familia del cual desea generar y descargar el reporte individual.</p>
+                </div>
+                <a href="/" class="btn btn-outline-secondary btn-sm w-100 w-sm-auto text-nowrap"><i class="bi bi-arrow-left"></i> Volver al Dashboard</a>
+            </div>
+            <div class="card-body p-0 p-sm-3">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 text-center">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Tipo de Membresía</th>
+                                <th class="text-center">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:if="${#lists.isEmpty(miembros)}">
+                                <td colspan="3" class="text-center py-4 text-muted">No se encontraron miembros aportadores registrados en esta familia.</td>
+                            </tr>
+                            <!-- 🛡️ Filtro estricto intacto -->
+                            <tr th:each="m : ${miembros}" th:if="${familiar.administrador or m.username == #authentication.name}">
+                                <td class="fw-bold text-dark text-start ps-4" th:text="${m.nombre}">Juan Pérez</td>
+                                <td>
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle" th:text="${m.tipoMembresia}">APORTADOR</span>
+                                </td>
+                                <td class="text-center">
+                                    <a th:href="@{/reporte/descargar/{id}(id=${m.id})}" class="btn btn-danger btn-sm text-nowrap">
+                                        <i class="bi bi-file-earmark-pdf me-1"></i> Descargar PDF
+                                    </a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+=== ARCHIVO: src/main/resources/templates/login.html ===
+
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control Médico Familiar - Acceso</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    
+    <style>
+        /* Definición de variables de color */
+        :root {
+            --primary-color: #0d6efd;
+            --accent-color: #0dcaf0;
+        }
+
+        body {
+            /* Fondo con degradado sutil superpuesto sobre una imagen médica profesional de alta calidad */
+            background: linear-gradient(135px, rgba(13, 110, 253, 0.65), rgba(13, 202, 240, 0.45)), 
+                        url('https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?q=80&w=2070') no-repeat center center fixed;
+            background-size: cover;
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* --- ANIMACIONES --- */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulseHeart {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        /* --- ESTILOS DE LA TARJETA --- */
+        .login-container {
+            animation: fadeInUp 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+
+        .login-card {
+            background: rgba(255, 255, 255, 0.90);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 20px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .login-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2) !important;
+        }
+
+        /* --- ICONO ANIMADO --- */
+        .brand-icon {
+            display: inline-block;
+            font-size: 3.5rem;
+            color: var(--primary-color);
+            animation: pulseHeart 2.5s infinite ease-in-out;
+        }
+
+        /* --- ESTILOS DE CAMPOS DE TEXTO --- */
+        .input-group-custom {
+            position: relative;
+        }
+
+        .input-group-custom .input-group-text {
+            background-color: transparent;
+            border-right: none;
+            color: #6c757d;
+            transition: color 0.3s ease;
+        }
+
+        .input-group-custom .form-control {
+            border-left: none;
+            transition: all 0.3s ease;
+        }
+
+        /* Animación de enfoque para los inputs */
+        .input-group-custom .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: none;
+        }
+
+        .input-group-custom .form-control:focus + .input-group-text,
+        .input-group-custom:focus-within .input-group-text {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        /* --- BOTÓN CON EFECTO DE GRADIENTE --- */
+        .btn-gradient {
+            background: linear-gradient(135px, var(--primary-color), #0a58ca);
+            border: none;
+            color: white;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-gradient:hover {
+            background: linear-gradient(135px, #0a58ca, #054198);
+            box-shadow: 0 8px 15px rgba(13, 110, 253, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .btn-gradient:active {
+            transform: translateY(1px);
+        }
+    </style>
+</head>
+<body class="d-flex align-items-center justify-content-center p-3">
+
+    <div class="container login-container" style="max-width: 430px;">
+        <div class="card login-card shadow-lg p-4 p-md-5">
+            <div class="card-body text-center">
+                
+                <div class="mb-3">
+                    <i class="bi bi-heart-pulse-fill brand-icon"></i>
+                </div>
+                
+                <h3 class="fw-bold text-dark mb-1">Control Médico</h3>
+                <p class="text-muted small mb-4">Plataforma de Gestión Familiar</p>
+
+                <!-- Mensaje para Familia Inactiva -->
+                <div th:if="${param.error != null and param.error[0] == 'inactivo'}"
+                    class="alert alert-warning p-2 small text-center rounded-3 border-0 animate__animated animate__fadeIn" role="alert">
+                    <i class="bi bi-house-dash-fill me-1"></i> Su grupo familiar se encuentra inactivo. Contacte al administrador.
+                </div>
+                
+                <!-- Mensaje para Credenciales Incorrectas Estándar -->
+                <div th:if="${param.error != null and param.error[0] != 'inactivo'}"
+                    class="alert alert-danger p-2 small text-center rounded-3 border-0 animate__animated animate__shakeX" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i> Usuario o contraseña incorrectos.
+                </div>
+                
+                <!-- Mensaje de Cierre de Sesión -->
+                <div th:if="${param.logout}" class="alert alert-success p-2 small text-center rounded-3 border-0" role="alert">
+                    <i class="bi bi-check-circle-fill me-1"></i> Sesión finalizada correctamente.
+                </div>
+
+                <form th:action="@{/login}" method="post" class="text-start mt-2">
+                    
+                    <div class="mb-3">
+                        <label for="username" class="form-label text-secondary small fw-semibold">Usuario</label>
+                        <div class="input-group input-group-custom shadow-sm rounded">
+                            <span class="input-group-text bg-white border-end-0"><i class="bi bi-person-fill"></i></span>
+                            <input type="text" id="username" name="username" class="form-control bg-white border-start-0 py-2" placeholder="Ingresa tu usuario" required autofocus>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="password" class="form-label text-secondary small fw-semibold">Contraseña</label>
+                        <div class="input-group input-group-custom shadow-sm rounded">
+                            <span class="input-group-text bg-white border-end-0"><i class="bi bi-lock-fill"></i></span>
+                            <input type="password" id="password" name="password" class="form-control bg-white border-start-0 py-2" placeholder="••••••••" required>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-gradient w-100 py-25 rounded-3 shadow-sm text-uppercase small">
+                        Entrar al Sistema <i class="bi bi-arrow-right-short ms-1 fs-5 align-middle"></i>
+                    </button>
+                </form>
+                
+                <div class="mt-4 pt-3 border-top border-light">
+                    <small class="text-muted">Desarrollado para el cuidado familiar &copy; 2026</small>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+=== ARCHIVO: src/main/resources/templates/dashboard-admin.html ===
+
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración Familiar - Control Médico</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body { background-color: #f4f7f6; }
+        .navbar-custom { background: linear-gradient(135px, #1e3c72 0%, #2a5298 100%); }
+        .card-counter { border-radius: 12px; transition: transform 0.2s; }
+        .card-counter:hover { transform: translateY(-3px); }
+    </style>
+</head>
+<body>
+
+    <!-- NAVBAR RESPONSIVO -->
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom shadow-sm mb-4">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center text-dark" href="/">
+                <i class="bi bi-heart-pulse-fill me-2 fs-3 text-warning"></i>
+                <div>
+                    <span class="fw-bold d-block">Control Médico Familiar</span>
+                    <small style="font-size: 0.75rem; opacity: 0.8;" th:text="${familiar.familia.nombre}">Familia</small>
+                </div>
+            </a>
+            
+            <button class="navbar-toggler border-white text-dark" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon" style="filter: invert(1);"></span>
+            </button>
+
+            <div class="collapse navbar-collapse justify-content-end mt-3 mt-lg-0" id="navbarNav">
+                <div class="navbar-nav align-items-start align-items-lg-center gap-2">
+                    <a class="nav-link active text-dark me-2" href="/"><i class="bi bi-house-door-fill me-1"></i> Dashboard</a>
+                    <a class="nav-link text-dark me-2" href="/reporte">Reporte Individual</a>
+                
+                    <span class="text-dark small bg-white bg-opacity-75 px-3 py-1 rounded-pill me-2">
+                        <i class="bi bi-shield-check text-primary me-1"></i>
+                        <strong th:text="${familiar.administrador ? 'ADMIN' : 'FAMILIAR'}">ROL</strong>:
+                        <span th:text="${familiar.nombre}">Usuario</span>
+                    </span>
+                
+                    <form th:action="@{/logout}" method="post" class="m-0 w-100 w-lg-auto">
+                        <button type="submit" class="btn btn-outline-dark btn-sm px-3 w-100">
+                            <i class="bi bi-box-arrow-right me-1"></i> Salir
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Grid fluido nativo de Bootstrap (se adapta solo) -->
+        <div class="row text-center mb-4">
+            <div class="col-md-4 mb-3">
+                <div class="card card-counter border-0 shadow-sm bg-white h-100 border-start border-success border-5">
+                    <div class="card-body py-4">
+                        <div class="text-success mb-2"><i class="bi bi-cash-coin fs-1"></i></div>
+                        <h6 class="card-title text-muted text-uppercase small fw-bold">Total Aportado</h6>
+                        <h3 class="card-text fw-bold text-success" th:text="${'$' + #numbers.formatDecimal(totalAportado, 1, 'DEFAULT', 2, 'DEFAULT')}">$0.00</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card card-counter border-0 shadow-sm bg-white h-100 border-start border-danger border-5">
+                    <div class="card-body py-4">
+                        <div class="text-danger mb-2"><i class="bi bi-cart-dash fs-1"></i></div>
+                        <h6 class="card-title text-muted text-uppercase small fw-bold">Total Gastado</h6>
+                        <h3 class="card-text fw-bold text-danger" th:text="${'$' + #numbers.formatDecimal(totalGastado, 1, 'DEFAULT', 2, 'DEFAULT')}">$0.00</h3>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4 mb-3">
+                <!-- 1. Tarjeta dinámica: Cambia el fondo y los bordes según el balance financiero -->
+                <div class="card card-counter border-0 shadow-sm h-100 border-5 border-start"
+                    th:classappend="${balanceDisponible < 0} ? 'bg-danger-subtle border-danger text-danger' : 
+                                     (${balanceDisponible == 0} ? 'bg-light border-secondary text-secondary' : 'bg-white border-primary text-primary')">
+            
+                    <div class="card-body py-4">
+                        <!-- 2. Ícono dinámico: Cambia el color del ícono según el estado -->
+                        <div class="mb-2" th:classappend="${balanceDisponible < 0} ? 'text-danger' : 
+                                             (${balanceDisponible == 0} ? 'text-secondary' : 'text-primary')">
+                            <i class="bi bi-wallet2 fs-1"></i>
+                        </div>
+            
+                        <!-- 3. Título de la tarjeta -->
+                        <h6 class="card-title text-uppercase small fw-bold"
+                            th:classappend="${balanceDisponible <= 0} ? 'text-muted' : 'text-primary-emphasis'">
+                            Fondos Disponibles
+                        </h6>
+            
+                        <!-- 4. Monto Dinámico con colores semánticos precisos -->
+                        <h3 class="card-text fw-bold" th:classappend="${balanceDisponible < 0} ? 'text-danger' : 
+                                            (${balanceDisponible == 0} ? 'text-dark' : 'text-success')"
+                            th:text="${'$' + #numbers.formatDecimal(balanceDisponible, 1, 'DEFAULT', 2, 'DEFAULT')}">
+                            $0.00
+                        </h3>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="card border-0 shadow-sm bg-white mb-5 rounded-3 overflow-hidden">
+            <!-- CABECERA DE HISTORIAL FLEXIBLE -->
+            <div class="card-header bg-white border-0 pt-4 px-4 d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3">
+                <h5 class="fw-bold text-secondary mb-0"><i class="bi bi-clock-history me-2"></i>Historial de Movimientos</h5>
+                <div class="d-flex flex-wrap gap-2 w-100 w-sm-auto justify-content-sm-end">
+                    <button th:if="${familiar.administrador}" type="button" class="btn btn-primary btn-sm shadow-sm px-3 fw-semibold" data-bs-toggle="modal" data-bs-target="#modalRegistro">
+                        <i class="bi bi-plus-lg me-1"></i> Registrar Movimiento
+                    </button>
+                    <a sec:authorize="hasAnyRole('ROLE_SYS_ADMIN', 'ROLE_ADMIN')" th:href="@{/sys-admin/mi-familia/miembros}" class="btn btn-success btn-sm px-3 shadow-sm fw-semibold">
+                        <i class="bi bi-people-fill me-1"></i> Administrar Miembros
+                    </a>
+                </div>
+            </div>
+            
+            <div class="card-body px-4 pb-4">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 text-center">
+                        <thead class="table-light text-muted small text-uppercase">
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Familiar</th>
+                                <th>Tipo</th>
+                                <th>Categoría Médica</th>
+                                <th>Descripción</th>
+                                <th class="text-end">Monto</th>
+                                <th th:if="${familiar.administrador}" class="text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:if="${#lists.isEmpty(movimientos)}">
+                                <td colspan="7" class="text-center text-muted py-5">
+                                    <i class="bi bi-folder-x fs-2 d-block mb-2"></i> No hay movimientos financieros capturados todavía.
+                                </td>
+                            </tr>
+                            <tr th:each="mov : ${movimientos}">
+                                <td th:text="${mov.fecha}">2026-01-01</td>
+                                <td th:text="${mov.familiar.nombre}" class="fw-semibold text-dark">Juan Perez</td>
+                                <td>
+                                    <span th:if="${mov.tipo == 'APORTACION'}" class="badge bg-success-subtle text-success px-3 py-2 rounded-pill">Aportación</span>
+                                    <span th:if="${mov.tipo == 'GASTO'}" class="badge bg-danger-subtle text-danger px-3 py-2 rounded-pill">Gasto</span>
+                                </td>
+                                <td th:text="${mov.tipo == 'APORTACION' ? 'Aportaciones' : (mov.categoria != null ? mov.categoria.nombre : '—')}" class="text-muted">Consulta</td>
+                                <td th:text="${mov.descripcion}" class="text-start text-wrap" style="max-width: 250px;">Compra de medicamento base</td>
+                                <td th:text="${'$' + #numbers.formatDecimal(mov.monto, 1, 'DEFAULT', 2, 'DEFAULT')}" th:classappend="${mov.tipo == 'APORTACION' ? 'text-success fw-bold text-end' : 'text-danger fw-bold text-end'}">$0.00</td>
+                                <td>
+                                    <form th:if="${familiar.administrador}" th:action="@{/movimientos/eliminar}" method="post" onsubmit="return confirm('¿Deseas eliminar este registro?');" class="d-inline">
+                                        <input type="hidden" name="id" th:value="${mov.id}" />
+                                        <button type="submit" class="btn btn-link text-danger p-0 m-0 border-0" title="Eliminar"><i class="bi bi-trash3-fill fs-5"></i></button>
+                                    </form>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div th:if="${totalPages > 1}" class="d-flex flex-column flex-sm-row justify-content-between align-items-center mt-4 pt-3 border-top gap-3">
+                    <div class="text-muted small">
+                        Página <span class="fw-bold" th:text="${currentPage + 1}">1</span> de <span class="fw-bold" th:text="${totalPages}">5</span>
+                    </div>
+                    <nav aria-label="Navegación de historial">
+                        <ul class="pagination pagination-sm mb-0 flex-wrap justify-content-center">
+                            <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
+                                <a class="page-link" th:href="@{/(page=${currentPage - 1})}">Anterior</a>
+                            </li>
+                            <li class="page-item" th:each="i : ${#numbers.sequence(0, totalPages - 1)}" th:classappend="${i == currentPage} ? 'active'">
+                                <a class="page-link" th:href="@{/(page=${i})}" th:text="${i + 1}">1</a>
+                            </li>
+                            <li class="page-item" th:classappend="${currentPage + 1 == totalPages} ? 'disabled'">
+                                <a class="page-link" th:href="@{/(page=${currentPage + 1})}">Siguiente</a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Transacción -->
+    <div class="modal fade" id="modalRegistro" tabindex="-1" aria-labelledby="modalRegistroLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title fw-bold" id="modalRegistroLabel"><i class="bi bi-calculator me-2 text-warning"></i>Capturar Transacción</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form th:action="@{/movimientos/guardar}" th:object="${nuevoMovimiento}" method="post">
+                    <div class="modal-body p-4">
+                        <div class="mb-3">
+                            <label for="fecha" class="form-label text-muted small fw-bold">Fecha del Movimiento</label>
+                            <input type="date" th:field="*{fecha}" id="fecha" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="familiar" class="form-label text-muted small fw-bold">Miembro Familiar Beneficiario/Aportante</label>
+                            <select th:field="*{familiar.id}" id="familiar" class="form-select" required>
+                                <option value="" disabled selected>Selecciona un familiar...</option>
+                                <option th:each="fam : ${familiares}" th:value="${fam.id}" th:text="${fam.nombre}"></option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="tipo" class="form-label text-muted small fw-bold">Tipo de Transacción</label>
+                            <select th:field="*{tipo}" id="tipo" class="form-select" onchange="alternarCategoria()" required>
+                                <option value="GASTO" selected>Gasto Médico</option>
+                                <option value="APORTACION">Aportación a Fondos</option>
+                            </select>
+                        </div>
+                        <div class="mb-3" id="grupoCategoria">
+                            <label for="categoria" class="form-label text-muted small fw-bold">Categoría Médica</label>
+                            <select th:field="*{categoria.id}" id="categoria" class="form-select">
+                                <option value="" selected>Ninguna / No aplica</option>
+                                <option th:each="cat : ${categorias}" th:value="${cat.id}" th:text="${cat.nombre}"></option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="monto" class="form-label text-muted small fw-bold">Monto ($)</label>
+                            <input type="number" step="0.01" min="0.01" th:field="*{monto}" id="monto" class="form-control" placeholder="0.00" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="descripcion" class="form-label text-muted small fw-bold">Descripción / Concepto</label>
+                            <textarea th:field="*{descripcion}" id="descripcion" class="form-control" rows="2" placeholder="Ej. Compra de paracetamol..." required></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light border-0 px-4">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary px-4 fw-semibold">Guardar Transacción</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function alternarCategoria() {
+            const tipoElement = document.getElementById('tipo');
+            const grupoCategoria = document.getElementById('grupoCategoria');
+            const categoriaSelect = document.getElementById('categoria');
+            if (tipoElement && tipoElement.value === 'APORTACION') {
+                if (grupoCategoria) grupoCategoria.style.display = 'none';
+                if (categoriaSelect) categoriaSelect.value = ''; 
+            } else {
+                if (grupoCategoria) grupoCategoria.style.display = 'block';
+            }
+        }
+        document.addEventListener("DOMContentLoaded", alternarCategoria);
+    </script>
+</body>
+</html>
+=== ARCHIVO: src/main/resources/templates/dashboard.html ===
+
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suite SYS_ADMIN - Control Médico Global</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        body { background-color: #f4f7f6; }
+        .navbar-custom { background: linear-gradient(135px, #1e3c72 0%, #2a5298 100%); }
+        .card-counter { border-left: 5px solid #1e3c72; transition: transform 0.2s; }
+        .card-counter:hover { transform: translateY(-3px); }
+    </style>
+</head>
+<body>
+    <div th:if="${mensajeExito}" class="alert alert-success alert-dismissible fade show shadow-sm m-3" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>
+        <span th:text="${mensajeExito}">Operación exitosa.</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+
+    <div th:if="${mensajeError}" class="alert alert-danger alert-dismissible fade show shadow-sm m-3" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        <span th:text="${mensajeError}">Ocurrió un error.</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+
+    <!-- NAVBAR RESPONSIVO -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm mb-4">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center text-decoration-none" href="#">
+                <i class="bi bi-shield-lock-fill text-warning fs-3 me-2"></i>
+                <div>
+                    <span class="fw-bold text-dark d-block" style="font-size: 1.15rem; line-height: 1.2;">SYS_ADMIN Suite</span>
+                    <small class="text-muted" style="font-size: 0.8rem;">Panel de Control Multi-tenant</small>
+                </div>
+            </a>
+            
+            <!-- Botón Hamburguesa Móvil -->
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSysAdmin" aria-controls="navbarSysAdmin" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+    
+            <div class="collapse navbar-collapse justify-content-end mt-3 mt-lg-0" id="navbarSysAdmin">
+                <div class="d-flex flex-column flex-lg-row align-items-start align-items-lg-center gap-3">
+                    <span class="text-dark small bg-dark bg-opacity-25 px-3 py-1 rounded-pill">
+                        <i class="bi bi-shield-check text-warning me-1"></i>
+                        <strong th:text="${#strings.contains(#authentication.authorities, 'ROLE_SYS_ADMIN')} ? 'SYS_ADMIN' : 'ADMIN'">ROL</strong>:
+                        <span sec:authentication="name">SuperUsuario</span>
+                    </span>
+                
+                    <form th:action="@{/logout}" method="post" class="m-0">
+                        <button type="submit" class="btn btn-outline-dark btn-sm w-100">
+                            <i class="bi bi-box-arrow-right me-1"></i> Salir
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- ENCABEZADO FLEXIBLE -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card shadow-sm border-0 bg-white p-4 d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+                    <div>
+                        <h2 class="text-dark fw-bold mb-1 fs-3">Consola de Control de Familias</h2>
+                        <p class="text-muted mb-0 small">Administración de membresías, asignación de administradores y aislamiento de inquilinos.</p>
+                    </div>
+                    <div class="d-flex flex-wrap align-items-center gap-2 w-100 w-md-auto justify-content-md-end">
+                        <div class="badge bg-primary fs-6 py-2 px-3">
+                            <i class="bi bi-building me-1"></i> <span th:text="${familias.totalElements}">0</span> Familias
+                        </div>
+                        <button type="button" class="btn btn-success shadow-sm px-4 fw-semibold" onclick="abrirModalCrear()">
+                            <i class="bi bi-plus-lg me-1"></i> Registrar Nueva Familia
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-responsive shadow-sm rounded">
+            <table class="table table-hover align-middle mb-0 text-center bg-white">
+                <thead class="table-light text-muted small text-uppercase">
+                    <tr>
+                        <th>ID Familia</th>
+                        <th>Nombre del Inquilino / Familia</th>
+                        <th>Fecha de Alta</th>
+                        <th>Estado Operativo</th>
+                        <th>Acciones Administrativas</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="fam : ${familias.content}">
+                        <td th:text="${fam.id}">1</td>
+                        <td>
+                            <a th:href="@{/sys-admin/familia/{id}/miembros(id=${fam.id})}" class="fw-bold text-decoration-none text-primary" th:text="${fam.nombre}">
+                                Familia Ortiz Salvador
+                            </a>
+                        </td>
+                        <td th:text="${fam.fechaCreacion != null ? #temporals.format(fam.fechaCreacion, 'dd/MM/yyyy HH:mm') : '—'}">25/06/2026 18:40</td>
+                        <td>
+                            <span th:text="${fam.activo ? 'Activo' : 'Inactivo'}" th:classappend="${fam.activo ? 'badge bg-success-subtle text-success px-3 py-2 rounded-pill' : 'badge bg-danger-subtle text-danger px-3 py-2 rounded-pill'}">Activo</span>
+                        </td>
+                        <td>
+                            <div class="d-flex justify-content-center gap-2">
+                                <a th:href="@{/sys-admin/familia/{id}/miembros(id=${fam.id})}" class="btn btn-dark btn-sm px-2 text-nowrap">
+                                    <i class="bi bi-gear-fill me-1"></i> Gestionar
+                                </a>
+                                <button type="button" class="btn btn-warning btn-sm text-white" th:onclick="|abrirModalEditar(${fam.id})|"
+                                    title="Editar Nombre/Estado">
+                                    <i class="bi bi-pencil-square"></i>
+                                </button>
+                                <form th:action="@{/sys-admin/familia/eliminar/{id}(id=${fam.id})}" method="post" onsubmit="return confirm('¿Estás seguro?');" style="display:inline;">
+                                    <button type="submit" class="btn btn-danger btn-sm" title="Eliminar"><i class="bi bi-trash3-fill"></i></button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div th:if="${familias.totalPages > 1}" class="d-flex justify-content-center mt-4">
+            <nav>
+                <ul class="pagination shadow-sm flex-wrap justify-content-center">
+                    <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
+                        <a class="page-link" th:href="@{/sys-admin/dashboard(page=${currentPage - 1})}">Anterior</a>
+                    </li>
+                    <li class="page-item" th:each="i : ${#numbers.sequence(0, familias.totalPages - 1)}" th:classappend="${currentPage == i} ? 'active'">
+                        <a class="page-link" th:href="@{/sys-admin/dashboard(page=${i})}" th:text="${i + 1}">1</a>
+                    </li>
+                    <li class="page-item" th:classappend="${currentPage == familias.totalPages - 1} ? 'disabled'">
+                        <a class="page-link" th:href="@{/sys-admin/dashboard(page=${currentPage + 1})}">Siguiente</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Modal Form -->
+    <div class="modal fade" id="modalFamilia" tabindex="-1" aria-labelledby="modalFamiliaLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title fw-bold" id="modalFamiliaLabel"><i class="bi bi-house-add-fill me-2 text-warning"></i><span id="modalTitulo">Registrar Familia</span></h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form th:action="@{/sys-admin/familia/guardar}" th:object="${nuevaFamilia}" method="post">
+                    <div class="modal-body p-4">
+                        <input type="hidden" th:field="*{id}" id="familiaId" />
+                        <div class="mb-3">
+                            <label for="nombre" class="form-label text-muted small fw-bold">Nombre del Inquilino / Familia</label>
+                            <input type="text" th:field="*{nombre}" id="nombre" class="form-control" placeholder="Ej. Familia Ortiz Salvador" required>
+                        </div>
+                        <div class="mb-3" id="grupoEstado" style="display: none;">
+                            <label for="activo" class="form-label text-muted small fw-bold">Estado Operativo</label>
+                            <select th:field="*{activo}" id="activo" class="form-select">
+                                <option th:value="true">Activo</option>
+                                <option th:value="false">Inactivo</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light border-0 px-4">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary px-4 fw-semibold">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let modalFamilia;
+        document.addEventListener("DOMContentLoaded", function () {
+            modalFamilia = new bootstrap.Modal(document.getElementById('modalFamilia'));
+        });
+        function abrirModalCrear() {
+            document.getElementById('modalTitulo').innerText = "Registrar Nueva Familia";
+            document.getElementById('familiaId').value = "";
+            document.getElementById('nombre').value = "";
+            document.getElementById('grupoEstado').style.display = "none";
+            document.getElementById('activo').value = true;
+            modalFamilia.show();
+        }
+        function abrirModalEditar(id) {
+            document.getElementById('modalTitulo').innerText = "Modificar Datos de Familia";
+            document.getElementById('grupoEstado').style.display = "block";
+    
+            fetch('/sys-admin/familia/datos/' + id)
+            .then(response => {
+            if (!response.ok) throw new Error("Error al recuperar información.");
+            return response.json();
+            }) 
+            .then(data => {
+            document.getElementById('familiaId').value = data.id;
+            document.getElementById('nombre').value = data.nombre;
+            document.getElementById('activo').value = data.activo.toString();
+            
+            // ¡ESTA LÍNEA FALTABA! Muestra el modal en pantalla tras cargar los datos
+            modalFamilia.show(); 
+            })
+            .catch(error => alert(error.message));
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+=== ARCHIVO: src/main/resources/templates/miembros-detalle.html ===
+
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalle de Familia - SYS_ADMIN</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        body { background-color: #f4f7f6; }
+        .card-header-custom { background: linear-gradient(135px, #1e3c72 0%, #2a5298 100%); }
+    </style>
+</head>
+<body class="bg-light">
+
+    <div class="container py-4 py-md-5">
+        <div class="mb-4">
+            <a th:href="${#authorization.expression('hasRole(''ROLE_SYS_ADMIN'')')} ? @{/sys-admin/dashboard} : @{/}" class="btn btn-outline-secondary btn-sm shadow-sm px-3">
+                <i class="bi bi-arrow-left me-1"></i> Volver a la Consola
+            </a>
+        </div>
+
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card shadow-sm border-0 mb-4 p-3 p-md-4 bg-white">
+                    <!-- ENCABEZADO FLEXIBLE -->
+                    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-4 gap-3">
+                        <h2 class="h4 text-gray-800 mb-0">Integrantes de la Familia</h2>
+                        <button type="button" class="btn btn-primary btn-sm shadow-sm px-3 py-2 w-100 w-sm-auto" data-bs-toggle="modal" data-bs-target="#modalNuevoMiembro">
+                            <i class="bi bi-person-plus-fill me-1"></i> Registrar Integrante
+                        </button>
+                    </div>
+                    
+                    <!-- table-responsive mantiene el scroll salvaguardando el layout -->
+                    <div class="table-responsive">
+                        <!-- Se cambia text-center por text-start para mejorar la lectura inicial en móviles -->
+                        <table class="table table-hover align-middle mb-0 text-start">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Familiar</th>
+                                    <th>Username</th>
+                                    <th>Rol de Seguridad</th>
+                                    <th>Tipo de Membresía</th>
+                                    <th class="text-center">Acciones Rápidas</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="miembro : ${miembros}">
+                                    <td class="fw-bold text-dark text-nowrap" th:text="${miembro.nombre}">Juan Pérez</td>
+                                    <td class="text-secondary" th:text="${miembro.username}">juanp12</td>
+                                    <td>
+                                        <!-- Mantenemos tus insignias originales intactas -->
+                                        <span th:if="${miembro.role != null and miembro.role.descripcion == 'SYS_ADMIN'}"
+                                            class="badge bg-dark px-3 py-2">SYS_ADMIN</span>
+                                        <span
+                                            th:if="${miembro.role != null and (miembro.role.descripcion == 'ROLE_ADMIN' or miembro.administrador)}"
+                                            class="badge bg-danger px-3 py-2">ADMIN FAMILIA</span>
+                                        <span
+                                            th:if="${miembro.role != null and miembro.role.descripcion == 'ROLE_FAMILIAR' and !miembro.administrador}"
+                                            class="badge bg-secondary px-3 py-2">FAMILIAR</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge"
+                                            th:classappend="${miembro.tipoMembresia == null ? 'bg-secondary' : (miembro.tipoMembresia?.name() == 'APORTADOR' ? 'bg-success' : 'bg-info')}"
+                                            th:text="${miembro.tipoMembresia != null ? miembro.tipoMembresia : 'Sin Registro'}">APORTADOR</span>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center justify-content-center gap-2 text-nowrap">
+                                            <!-- Formulario 1: Actualizar Membresía (Original) -->
+                                            <form th:action="@{/sys-admin/miembro/actualizar-membresia}" method="post" class="m-0">
+                                                <input type="hidden" name="miembroId" th:value="${miembro.id}">
+                                                <input type="hidden" name="familiaId" th:value="${familiaId}">
+                                                <select name="tipoMembresia" class="form-select form-select-sm w-auto shadow-sm"
+                                                    onchange="this.form.submit()">
+                                                    <option th:each="tipo : ${tiposMembresia}" th:value="${tipo}" th:text="${tipo}"
+                                                        th:selected="${miembro.tipoMembresia == tipo}"></option>
+                                                </select>
+                                            </form>
+                            
+                                            <!-- Formulario 2: Asignar Admin (Optimizado manteniendo tus estilos y textos exactos) -->
+                                            <!-- El botón solo se muestra si el miembro NO es administrador y tampoco es un Administrador del Sistema -->
+                                            <form th:action="@{/sys-admin/familia/reasignar-admin}" method="post" class="m-0"
+                                                th:if="${!miembro.administrador and (miembro.role == null or miembro.role.descripcion != 'SYS_ADMIN')}"
+                                                th:onsubmit="return confirm('¿Estás seguro de que deseas asignar a este miembro como el nuevo Administrador Familiar?');">
+                                                <input type="hidden" name="familiaId" th:value="${familiaId}">
+                                                <input type="hidden" name="nuevoAdminId" th:value="${miembro.id}">
+                                                <button type="submit" class="btn btn-warning btn-sm text-nowrap fw-semibold shadow-sm text-white">
+                                                    <i class="bi bi-shield-up"></i> Asignar Admin
+                                                </button>
+                                            </form>
+                            
+                                            <!-- Estado Protegido: Si el miembro ya es Admin o SysAdmin -->
+                                            <span class="text-muted small px-2"
+                                                th:if="${miembro.administrador or (miembro.role != null and miembro.role.descripcion == 'SYS_ADMIN')}">
+                                                <i class="bi bi-lock-fill text-secondary"></i> Protegido
+                                            </span>
+                            
+                                            <!-- Formulario 3: Eliminar Miembro (Original) -->
+                                            <form
+                                                th:action="@{/sys-admin/familia/{fId}/miembros/eliminar/{mId}(fId=${familiaId}, mId=${miembro.id})}"
+                                                method="post" class="m-0" th:onsubmit="return confirm('¿Eliminar miembro?');">
+                                                <button type="submit" class="btn btn-danger btn-sm"><i class="bi bi-trash-fill"></i></button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(miembros)}">
+                                    <td colspan="5" class="text-muted text-center py-4">No hay familiares vinculados a este inquilino.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Integrante -->
+    <div class="modal fade" id="modalNuevoMiembro" tabindex="-1" aria-labelledby="modalNuevoMiembroLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="modalNuevoMiembroLabel"><i class="bi bi-person-plus me-2"></i>Añadir Miembro Familiar</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form th:action="@{/sys-admin/familia/{fId}/miembros/guardar(fId=${familiaId})}" th:object="${nuevoMiembro}" method="post">
+                    <div class="modal-body p-4">
+                        <div class="mb-3">
+                            <label for="nombre" class="form-label fw-bold small text-muted">Nombre Completo</label>
+                            <input type="text" th:field="*{nombre}" id="nombre" class="form-control" required placeholder="Ej: Brenda Ortiz" />
+                        </div>
+                        <div class="mb-3">
+                            <label for="username" class="form-label fw-bold small text-muted">Nombre de Usuario (Username)</label>
+                            <input type="text" th:field="*{username}" id="username" class="form-control" required placeholder="Ej: brenda.ortiz" />
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label fw-bold small text-muted">Contraseña Temporal</label>
+                            <div class="input-group">
+                                <input type="password" th:field="*{password}" id="password" class="form-control" required minlength="4" placeholder="Clave provisoria" />
+                                <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility()"><i class="bi bi-eye"></i></button>
+                            </div>
+                            <div class="form-text text-muted small">Mínimo 4 caracteres.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="tipoMembresia" class="form-label fw-bold small text-muted">Tipo de Membresía</label>
+                            <select th:field="*{tipoMembresia}" id="tipoMembresia" class="form-select" required>
+                                <option value="">-- Seleccione una opción --</option>
+                                <option th:each="tipo : ${tiposMembresia}" th:value="${tipo}" th:text="${tipo}">APORTADOR</option>
+                            </select>
+                        </div>
+                        <hr>
+                        <div class="form-check form-switch p-3 bg-light rounded border mx-0">
+                            <input class="form-check-input ms-0 me-2" type="checkbox" name="isAdministradorCheck" id="isAdministradorCheck">
+                            <label class="form-check-label fw-bold text-dark" for="isAdministradorCheck">¿Asignar como Administrador Principal?</label>
+                            <div class="form-text text-muted small mt-1"><i class="bi bi-info-circle-fill text-warning me-1"></i>Asignará ROLE_ADMIN de forma automática.</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-success btn-sm px-3">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function togglePasswordVisibility() {
+            const passwordInput = document.getElementById('password');
+            const icon = document.querySelector('[onclick="togglePasswordVisibility()"] i');
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                icon.classList.replace('bi-eye', 'bi-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                icon.classList.replace('bi-eye-slash', 'bi-eye');
+            }
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+=== ARCHIVO: src/main/resources/application.properties ===
+
+# Servidor
+server.port=8080
+
+# Configuración del esquema y conexión a Postgres
+spring.datasource.url=jdbc:postgresql://localhost:5432/controlMedico_DB?currentSchema=control_medico
+spring.datasource.username=postgres
+spring.datasource.password=12345
+spring.datasource.driver-class-name=org.postgresql.Driver
+
+# Configuración de Hibernate
+spring.jpa.properties.hibernate.default_schema=control_medico
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
+
+# Credenciales fijas para el Login
+spring.security.user.name=admin
+spring.security.user.password=12345
