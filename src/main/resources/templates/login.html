@@ -134,9 +134,19 @@
                 <h3 class="fw-bold text-dark mb-1">Control Médico</h3>
                 <p class="text-muted small mb-4">Plataforma de Gestión Familiar</p>
 
-                <div th:if="${param.error}" class="alert alert-danger p-2 small text-center rounded-3 border-0 animate__animated animate__shakeX" role="alert">
+                <!-- Mensaje para Familia Inactiva -->
+                <div th:if="${param.error != null and param.error[0] == 'inactivo'}"
+                    class="alert alert-warning p-2 small text-center rounded-3 border-0 animate__animated animate__fadeIn" role="alert">
+                    <i class="bi bi-house-dash-fill me-1"></i> Su grupo familiar se encuentra inactivo. Contacte al administrador.
+                </div>
+                
+                <!-- Mensaje para Credenciales Incorrectas Estándar -->
+                <div th:if="${param.error != null and param.error[0] != 'inactivo'}"
+                    class="alert alert-danger p-2 small text-center rounded-3 border-0 animate__animated animate__shakeX" role="alert">
                     <i class="bi bi-exclamation-triangle-fill me-1"></i> Usuario o contraseña incorrectos.
                 </div>
+                
+                <!-- Mensaje de Cierre de Sesión -->
                 <div th:if="${param.logout}" class="alert alert-success p-2 small text-center rounded-3 border-0" role="alert">
                     <i class="bi bi-check-circle-fill me-1"></i> Sesión finalizada correctamente.
                 </div>

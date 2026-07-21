@@ -10,6 +10,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 
@@ -24,6 +25,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         log.info("[LOG-LOGIN] ──> Iniciando intento de autenticación para el usuario: '{}'", username);
 
@@ -54,10 +56,29 @@ public class CustomUserDetailsService implements UserDetailsService {
         SimpleGrantedAuthority authority = new SimpleGrantedAuthority(nombreRol);
         log.info("[LOG-LOGIN] ⚙️ Autoridad asignada a Spring Security: '{}'", authority.getAuthority());
 
-        // 4. Retornar el User de Spring Security
+        // 3.5. DETERMINAR EL ESTADO OPERATIVO DE LA FAMILIA
+        boolean cuentaHabilitada = true;
+        
+        // Evaluamos si el familiar pertenece a una familia y si está activa
+        if (familiar.getFamilia() != null) {
+            // Si la familia tiene activo = false, 'cuentaHabilitada' será false
+            cuentaHabilitada = Boolean.TRUE.equals(familiar.getFamilia().getActivo());
+            
+            if (!cuentaHabilitada) {
+                log.warn("[LOG-LOGIN] ⛔ ACCESO DENEGADO: El usuario '{}' pertenece a la familia '{}' la cual se encuentra INACTIVA.", 
+                        username, familiar.getFamilia().getNombre());
+            }
+        }
+
+        // 4. Retornar el User de Spring Security con constructor extendido
         return new User(
                 familiar.getUsername(),
                 familiar.getPassword(),
-                Collections.singletonList(authority));
+                cuentaHabilitada,       // enabled: aquí se bloquea si la familia está inactiva
+                true,                   // accountNonExpired
+                true,                   // credentialsNonExpired
+                true,                   // accountNonLocked
+                Collections.singletonList(authority)
+        );
     }
 }
