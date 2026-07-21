@@ -73,7 +73,8 @@
                         <div class="badge bg-primary fs-6 py-2 px-3">
                             <i class="bi bi-building me-1"></i> <span th:text="${familias.totalElements}">0</span> Familias
                         </div>
-                        <button type="button" class="btn btn-success shadow-sm px-4 fw-semibold" onclick="abrirModalCrear()">
+                        <button sec:authorize="hasRole('ROLE_SYS_ADMIN')" type="button" class="btn btn-success shadow-sm px-4 fw-semibold"
+                            onclick="abrirModalCrear()">
                             <i class="bi bi-plus-lg me-1"></i> Registrar Nueva Familia
                         </button>
                     </div>
@@ -109,12 +110,14 @@
                                 <a th:href="@{/sys-admin/familia/{id}/miembros(id=${fam.id})}" class="btn btn-dark btn-sm px-2 text-nowrap">
                                     <i class="bi bi-gear-fill me-1"></i> Gestionar
                                 </a>
-                                <button type="button" class="btn btn-warning btn-sm text-white" th:onclick="|abrirModalEditar(${fam.id})|"
-                                    title="Editar Nombre/Estado">
+                                <button sec:authorize="hasRole('ROLE_SYS_ADMIN')" type="button" class="btn btn-warning btn-sm text-white"
+                                    th:onclick="|abrirModalEditar(${fam.id})|" title="Editar Nombre/Estado">
                                     <i class="bi bi-pencil-square"></i>
                                 </button>
-                                <form th:action="@{/sys-admin/familia/eliminar/{id}(id=${fam.id})}" method="post" onsubmit="return confirm('¿Estás seguro?');" style="display:inline;">
-                                    <button type="submit" class="btn btn-danger btn-sm" title="Eliminar"><i class="bi bi-trash3-fill"></i></button>
+                                <form sec:authorize="hasRole('ROLE_SYS_ADMIN')" th:action="@{/sys-admin/familia/eliminar/{id}(id=${fam.id})}"
+                                    method="post" onsubmit="return confirm('¿Estás seguro?');" style="display:inline;">
+                                    <button type="submit" class="btn btn-danger btn-sm" title="Eliminar"><i
+                                            class="bi bi-trash3-fill"></i></button>
                                 </form>
                             </div>
                         </td>

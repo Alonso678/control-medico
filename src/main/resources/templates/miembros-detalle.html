@@ -26,7 +26,9 @@
                     <!-- ENCABEZADO FLEXIBLE -->
                     <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-4 gap-3">
                         <h2 class="h4 text-gray-800 mb-0">Integrantes de la Familia</h2>
-                        <button type="button" class="btn btn-primary btn-sm shadow-sm px-3 py-2 w-100 w-sm-auto" data-bs-toggle="modal" data-bs-target="#modalNuevoMiembro">
+                        <button sec:authorize="hasAnyRole('ROLE_SYS_ADMIN', 'ROLE_ADMIN')" type="button"
+                            class="btn btn-primary btn-sm shadow-sm px-3 py-2 w-100 w-sm-auto" data-bs-toggle="modal"
+                            data-bs-target="#modalNuevoMiembro">
                             <i class="bi bi-person-plus-fill me-1"></i> Registrar Integrante
                         </button>
                     </div>
@@ -41,7 +43,7 @@
                                     <th>Username</th>
                                     <th>Rol de Seguridad</th>
                                     <th>Tipo de Membresía</th>
-                                    <th class="text-center">Acciones Rápidas</th>
+                                    <th sec:authorize="hasAnyRole('ROLE_SYS_ADMIN', 'ROLE_ADMIN')" class="text-center">Acciones Rápidas</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -64,7 +66,7 @@
                                             th:classappend="${miembro.tipoMembresia == null ? 'bg-secondary' : (miembro.tipoMembresia?.name() == 'APORTADOR' ? 'bg-success' : 'bg-info')}"
                                             th:text="${miembro.tipoMembresia != null ? miembro.tipoMembresia : 'Sin Registro'}">APORTADOR</span>
                                     </td>
-                                    <td>
+                                    <td sec:authorize="hasAnyRole('ROLE_SYS_ADMIN', 'ROLE_ADMIN')">
                                         <div class="d-flex align-items-center justify-content-center gap-2 text-nowrap">
                                             <!-- Formulario 1: Actualizar Membresía (Original) -->
                                             <form th:action="@{/sys-admin/miembro/actualizar-membresia}" method="post" class="m-0">
