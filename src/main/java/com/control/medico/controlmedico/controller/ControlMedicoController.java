@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.beans.factory.annotation.Value;
 
 import com.lowagie.text.*;
 
@@ -48,6 +49,9 @@ public class ControlMedicoController {
     private final CategoriaRepository categoriaRepository;
 
     private final MovimientoRepository movimientoRepository;
+
+    @Value("${app.cdn.url}")
+    private String cdnUrl;
 
     public ControlMedicoController(ControlMedicoService controlMedicoService,
             FamiliarRepository familiarRepository,
@@ -269,27 +273,6 @@ public class ControlMedicoController {
         banner.setWidths(new float[] { 3.8f, 6.2f });
         banner.setSpacingAfter(25);
 
-        // Intentar cargar y escalar el logo con un tamaño más protagónico (85x85 pt
-        // máx)
-        Image logoCelda = null;
-        try {
-            // Apunta directamente al nuevo nombre de archivo dentro del Classpath de
-            // Spring Boot
-            org.springframework.core.io.Resource resource = new org.springframework.core.io.ClassPathResource(
-                    "static/img/control_medico_sistema_familiar.png");
-
-            if (resource.exists()) {
-                logoCelda = Image.getInstance(resource.getURL());
-                logoCelda.scaleToFit(85, 85); // Mantiene el tamaño ideal de la tarjeta blanca
-                logoCelda.setAlignment(Element.ALIGN_CENTER);
-            } else {
-                System.err.println(
-                        "[PDF] Alerta: El archivo 'control_medico_sistema_familiar.png' no existe en src/main/resources/static/img/");
-            }
-        } catch (Exception e) {
-            System.err.println("[PDF] Error crítico al cargar logo en banner: " + e.getMessage());
-        }
-
         // =========================================================================
         // COLUMNA 1: CONTENEDOR DE LOGO INTEGRADO CON MARGEN INTERNO EXACTO
         // =========================================================================
@@ -306,17 +289,77 @@ public class ControlMedicoController {
         PdfPCell cuerpoTarjeta = new PdfPCell();
         cuerpoTarjeta.setBackgroundColor(java.awt.Color.WHITE);
         cuerpoTarjeta.setPadding(4f);
-
         cuerpoTarjeta.setHorizontalAlignment(Element.ALIGN_CENTER);
         cuerpoTarjeta.setVerticalAlignment(Element.ALIGN_MIDDLE);
         cuerpoTarjeta.setBorderColor(new java.awt.Color(240, 244, 248));
         cuerpoTarjeta.setBorderWidth(1f);
 
-        if (logoCelda != null) {
-            logoCelda.setWidthPercentage(100);
-            cuerpoTarjeta.addElement(logoCelda);
-        } else {
-            cuerpoTarjeta.addElement(new Paragraph("LOGOTIPO", fontTablaHeader));
+        // --- CONFIGURACIÓN DEL LOGO CON MECANISMO DE FALLBACK (CDN / LOCAL) ---
+        try {
+            String nombreLogo = "control_medico_sistema_familiar.png";
+            java.net.URL urlLogo = null;
+            Image logoImg = null;
+
+            try {
+                // 1. INTENTO PRINCIPAL: Cargar desde la propiedad del CDN (inyectada en tu
+                // atributo de clase)
+                urlLogo = new java.net.URL(this.cdnUrl + "/" + nombreLogo);
+                log.info("[LOG-REPORTE] Intentando descargar logo desde CDN: {}", urlLogo);
+                logoImg = Image.getInstance(urlLogo);
+                log.info("[LOG-REPORTE] ¡ÉXITO! Logo cargado correctamente desde el CDN.");
+            } catch (Exception eCdn) {
+                log.warn("[LOG-REPORTE] CDN no disponible. Activando fallback local. Motivo: {}", eCdn.getMessage());
+                // 2. FALLBACK SECUNDARIO: Si el CDN falla, intenta buscar en el ClassLoader
+                // local
+                urlLogo = Thread.currentThread().getContextClassLoader().getResource("img/" + nombreLogo);
+
+                if (urlLogo == null) {
+                    urlLogo = ControlMedicoController.class.getResource("/img/" + nombreLogo);
+                }
+
+                if (urlLogo != null) {
+                    logoImg = Image.getInstance(urlLogo);
+                    log.info("[LOG-REPORTE] ¡AVISO! El logo se cargó exitosamente desde los recursos locales (Fallback).");
+                }
+            }
+
+            // Si ambos intentos fallaron de manera controlada sin lanzar excepción previa
+            if (logoImg == null) {
+                throw new java.io.FileNotFoundException("No se pudo recuperar el logo ni de forma remota ni local.");
+            }
+
+            // Ajustes visuales de la imagen
+            logoImg.scaleToFit(120, 50); // Ajuste proporcional al contenedor blanco
+            logoImg.setWidthPercentage(100);
+
+            // Se agrega directamente a la tarjeta blanca si tiene éxito
+            cuerpoTarjeta.addElement(logoImg);
+
+        } catch (Exception e) {
+            log.error("[LOG-REPORTE] No se pudo cargar el logo comercial (Renderizando marcador controlado): {}",
+                    e.getMessage());
+
+            // Si falla la carga, diseñamos el marcador controlado dentro de la tarjeta
+            PdfPTable tablaPlaceholder = new PdfPTable(1);
+            tablaPlaceholder.setWidthPercentage(100);
+
+            PdfPCell celdaPlaceholder = new PdfPCell();
+            celdaPlaceholder.setBorderWidth(1f);
+            celdaPlaceholder.setBorderColor(new java.awt.Color(200, 200, 200));
+            celdaPlaceholder.setBackgroundColor(new java.awt.Color(245, 245, 245));
+            celdaPlaceholder.setPadding(10f);
+            celdaPlaceholder.setHorizontalAlignment(Element.ALIGN_CENTER);
+            celdaPlaceholder.setVerticalAlignment(Element.ALIGN_MIDDLE);
+
+            Font fontPlaceholder = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, Font.NORMAL,
+                    new java.awt.Color(128, 128, 128));
+            Paragraph textPlaceholder = new Paragraph("[ Control Médico ]\nLogo N/D", fontPlaceholder);
+            textPlaceholder.setAlignment(Element.ALIGN_CENTER);
+
+            celdaPlaceholder.addElement(textPlaceholder);
+            tablaPlaceholder.addCell(celdaPlaceholder);
+
+            cuerpoTarjeta.addElement(tablaPlaceholder);
         }
 
         tarjetaBlanca.addCell(cuerpoTarjeta);

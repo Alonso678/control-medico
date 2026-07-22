@@ -76,11 +76,23 @@
 			<artifactId>spring-boot-starter-thymeleaf-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<!-- Reemplaza el webmvc normal por este: -->
 		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-web</artifactId>
+		</dependency>
+
+		<!-- Y en la sección de pruebas, reemplaza webmvc-test por este: -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<!-- <dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webmvc-test</artifactId>
 			<scope>test</scope>
-		</dependency>
+		</dependency> -->
 		<dependency>
 			<groupId>com.github.librepdf</groupId>
 			<artifactId>openpdf</artifactId>
@@ -89,6 +101,12 @@
 	</dependencies>
 
 	<build>
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>true</filtering> <!-- Permite interpolar las variables -->
+			</resource>
+		</resources>
 		<plugins>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
@@ -140,5 +158,32 @@
 			</plugin>
 		</plugins>
 	</build>
+
+	<profiles>
+		<!-- Perfil de Desarrollo / Pruebas -->
+		<profile>
+			<id>des</id>
+			<activation>
+				<activeByDefault>true</activeByDefault> <!-- 'des' se ejecutará por defecto -->
+			</activation>
+			<properties>
+				<entorno.spring>des</entorno.spring>
+				<cdn.url>
+					https://raw.githubusercontent.com/Alonso678/control-medico/develop/src/main/resources/static/img</cdn.url>
+			</properties>
+		</profile>
+
+		<!-- Perfil de Producción -->
+		<profile>
+			<id>prod</id>
+			<activation>
+				<activeByDefault>false</activeByDefault> 
+			</activation>
+			<properties>
+				<entorno.spring>prod</entorno.spring>
+				<cdn.url>https://tu-cdn-oficial-produccion.com/img</cdn.url>
+			</properties>
+		</profile>
+	</profiles>
 
 </project>
