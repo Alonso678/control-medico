@@ -208,7 +208,7 @@ public class ControlMedicoController {
     }
 
     // =========================================================================
-    // MÉTODO OPTIMIZADO Y REUTILIZABLE PARA LA GENERACIÓN DEL PDF
+    // MÉTODO MEJORADO CON DISEÑO EDITORIAL PROFESIONAL (OPENPDF)
     // =========================================================================
     private byte[] generarPdf(Familiar familiar, BigDecimal totalGastosGrupo, long totalMiembros,
             List<Movimiento> aportaciones) throws Exception {
@@ -216,7 +216,6 @@ public class ControlMedicoController {
         // --- 1. Cálculos de Negocio Internos ---
         BigDecimal cuotaIndividual = totalGastosGrupo.divide(BigDecimal.valueOf(totalMiembros), 2,
                 RoundingMode.HALF_UP);
-
         BigDecimal totalAportadoFamiliar = BigDecimal.ZERO;
         if (aportaciones != null) {
             for (Movimiento mov : aportaciones) {
@@ -225,119 +224,289 @@ public class ControlMedicoController {
                 }
             }
         }
-
         BigDecimal cantidadFaltante = cuotaIndividual.subtract(totalAportadoFamiliar);
+        boolean tieneDeuda = cantidadFaltante.compareTo(BigDecimal.ZERO) > 0;
+        java.text.DecimalFormat df = new java.text.DecimalFormat("$#,##0.00");
 
-        // --- 2. Inicialización del Documento (OpenPDF) ---
+        // --- 2. Inicialización del Documento ---
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        Document document = new Document(PageSize.A4, 36, 36, 36, 36); // Márgenes de 0.5 in (36pt)
-        PdfWriter.getInstance(document, out);
+        Document document = new Document(PageSize.A4, 45, 45, 45, 45);
+        PdfWriter writer = PdfWriter.getInstance(document, out);
+
+        // 🛡️ REGISTRO DEL MANEJADOR VISUAL (Logo y Marca de Agua)
+        DiseñoPdfHelper helper = new DiseñoPdfHelper();
+        writer.setPageEvent(helper);
 
         document.open();
 
-        // --- 3. Estilos y Fuentes ---
-        Font fontTitulo = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14, Font.BOLD);
-        Font fontSubtitulo = FontFactory.getFont(FontFactory.HELVETICA, 10, Font.NORMAL);
-        Font fontSeccion = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11, Font.BOLD);
-        Font fontTablaHeader = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, Font.BOLD);
-        Font fontTablaData = FontFactory.getFont(FontFactory.HELVETICA, 9, Font.NORMAL);
+        // --- 3. Paleta de Colores Corporativos (Actualizados a tu paleta) ---
+        java.awt.Color azulPrimario = new java.awt.Color(13, 110, 253); // #0d6efd (Primary)
+        java.awt.Color azulAcento = new java.awt.Color(13, 202, 240); // #0dcaf0 (Accent)
+        java.awt.Color azulClaro = new java.awt.Color(235, 243, 255); // Fondo suave para headers de tablas
+        java.awt.Color verdeExito = new java.awt.Color(47, 133, 90); // Para montos a favor o correctos
+        java.awt.Color rojoAlerta = new java.awt.Color(197, 48, 48); // Para deudas
+        java.awt.Color grisTexto = new java.awt.Color(74, 85, 104); // Textos secundarios // #4a5568
 
-        // --- 4. Encabezados de la Página ---
-        Paragraph titulo = new Paragraph("REPORTE INDIVIDUAL - CONTROL MÉDICO", fontTitulo);
-        titulo.setAlignment(Element.ALIGN_LEFT);
-        document.add(titulo);
+        // --- 4. Fuentes Profesionales ---
+        Font fontHeaderTitulo = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 15, Font.BOLD, java.awt.Color.WHITE);
+        Font fontHeaderSub = FontFactory.getFont(FontFactory.HELVETICA, 10, Font.NORMAL, azulAcento); 
+        Font fontHeaderMeta = FontFactory.getFont(FontFactory.HELVETICA, 9, Font.NORMAL,
+                new java.awt.Color(240, 244, 248));
 
+        Font fontSeccion = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11, Font.BOLD, azulPrimario);
+        Font fontTablaHeader = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, Font.BOLD, grisTexto);
+        Font fontTablaData = FontFactory.getFont(FontFactory.HELVETICA, 9, Font.NORMAL, azulPrimario);
+        Font fontTablaDataGris = FontFactory.getFont(FontFactory.HELVETICA, 9, Font.NORMAL, grisTexto);
+        //Font fontMontoDestacado = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, Font.BOLD);
+
+        // --- 5. BANNER CORPORATIVO DE ENCABEZADO (Diseño de Tarjeta Blanca para el
+        // Logo) ---
+        // Estructura de 2 columnas principales: [Contenedor del Logo (3.8)] [Textos del
+        // Estado (6.2)]
+        PdfPTable banner = new PdfPTable(2);
+        banner.setWidthPercentage(100);
+        banner.setWidths(new float[] { 3.8f, 6.2f });
+        banner.setSpacingAfter(25);
+
+        // Intentar cargar y escalar el logo con un tamaño más protagónico (85x85 pt
+        // máx)
+        Image logoCelda = null;
+        try {
+            // 📁 Apunta directamente al nuevo nombre de archivo dentro del Classpath de
+            // Spring Boot
+            org.springframework.core.io.Resource resource = new org.springframework.core.io.ClassPathResource(
+                    "static/img/control_medico_sistema_familiar.png");
+
+            if (resource.exists()) {
+                logoCelda = Image.getInstance(resource.getURL());
+                logoCelda.scaleToFit(85, 85); // Mantiene el tamaño ideal de la tarjeta blanca
+                logoCelda.setAlignment(Element.ALIGN_CENTER);
+            } else {
+                System.err.println(
+                        "[PDF] Alerta: El archivo 'control_medico_sistema_familiar.png' no existe en src/main/resources/static/img/");
+            }
+        } catch (Exception e) {
+            System.err.println("[PDF] Error crítico al cargar logo en banner: " + e.getMessage());
+        }
+
+        // =========================================================================
+        // COLUMNA 1: CONTENEDOR DE LOGO INTEGRADO CON MARGEN INTERNO EXACTO
+        // =========================================================================
+        PdfPCell celdaIzquierdaContenedor = new PdfPCell();
+        celdaIzquierdaContenedor.setBackgroundColor(azulPrimario);
+        celdaIzquierdaContenedor.setBorder(Rectangle.NO_BORDER);
+        celdaIzquierdaContenedor.setPadding(12);
+        celdaIzquierdaContenedor.setVerticalAlignment(Element.ALIGN_MIDDLE);
+
+        // Creamos una subtabla interna de 1x1 que actuará como la tarjeta blanca
+        PdfPTable tarjetaBlanca = new PdfPTable(1);
+        tarjetaBlanca.setWidthPercentage(100);
+
+        PdfPCell cuerpoTarjeta = new PdfPCell();
+        cuerpoTarjeta.setBackgroundColor(java.awt.Color.WHITE);
+        cuerpoTarjeta.setPadding(4f);
+
+        cuerpoTarjeta.setHorizontalAlignment(Element.ALIGN_CENTER);
+        cuerpoTarjeta.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        cuerpoTarjeta.setBorderColor(new java.awt.Color(240, 244, 248));
+        cuerpoTarjeta.setBorderWidth(1f);
+
+        if (logoCelda != null) {
+            logoCelda.setWidthPercentage(100);
+            cuerpoTarjeta.addElement(logoCelda);
+        } else {
+            cuerpoTarjeta.addElement(new Paragraph("LOGOTIPO", fontTablaHeader));
+        }
+
+        tarjetaBlanca.addCell(cuerpoTarjeta);
+        celdaIzquierdaContenedor.addElement(tarjetaBlanca); // Metemos la tarjeta en la celda del banner
+        banner.addCell(celdaIzquierdaContenedor);
+
+        // =========================================================================
+        // COLUMNA 2: TEXTOS Y METADATOS (Alineados a la derecha como en tu imagen)
+        // =========================================================================
+        PdfPCell celdaDerechaTextos = new PdfPCell();
+        celdaDerechaTextos.setBorder(Rectangle.NO_BORDER);
+        celdaDerechaTextos.setBackgroundColor(azulPrimario);
+        celdaDerechaTextos.setPaddingTop(16);
+        celdaDerechaTextos.setPaddingBottom(16);
+        celdaDerechaTextos.setPaddingRight(20);
+        celdaDerechaTextos.setVerticalAlignment(Element.ALIGN_MIDDLE);
+
+        // Párrafo contenedor para alinear todo a la derecha limpiamente
+        Paragraph pTextosDerecha = new Paragraph();
+        pTextosDerecha.setAlignment(Element.ALIGN_RIGHT);
+
+        // Título Principal
+        Paragraph pTitulo = new Paragraph("ESTADO DE CUENTA INDIVIDUAL", fontHeaderTitulo);
+        pTitulo.setAlignment(Element.ALIGN_RIGHT);
+        pTextosDerecha.add(pTitulo);
+
+        // Subtítulo / Asignado a
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-        Paragraph fechaEmision = new Paragraph("Fecha de emisión : " + java.time.LocalDate.now().format(formatter),
-                fontSubtitulo);
-        document.add(fechaEmision);
+        Chunk chunkAsignado = new Chunk("Asignado a: " + familiar.getNombre() + "\n", fontHeaderSub); 
+        pTextosDerecha.add(chunkAsignado);
 
-        Paragraph solicitadoPor = new Paragraph("Reporte Solicitado por: " + familiar.getNombre(), fontSubtitulo);
-        document.add(solicitadoPor);
+        // Fecha de Emisión
+        Chunk chunkEmision = new Chunk("Emisión: " + java.time.LocalDate.now().format(formatter), fontHeaderMeta);
+        pTextosDerecha.add(chunkEmision);
 
-        document.add(new Paragraph(" ")); // Espacio
+        celdaDerechaTextos.addElement(pTextosDerecha);
+        banner.addCell(celdaDerechaTextos);
 
-        // --- 5. TABLA 1: Resumen de Conceptos Globales ---
+        document.add(banner);
+
+        // --- 6. TABLA 1: RESUMEN DE BALANCE INDIVIDUAL ---
+        Paragraph secResumen = new Paragraph("RESUMEN DE BALANCE INDIVIDUAL", fontSeccion);
+        secResumen.setSpacingAfter(8);
+        document.add(secResumen);
+
         PdfPTable tablaConceptos = new PdfPTable(2);
         tablaConceptos.setWidthPercentage(100);
-        tablaConceptos.setWidths(new float[] { 3.5f, 1.5f });
+        tablaConceptos.setWidths(new float[] { 7.0f, 3.0f });
+        tablaConceptos.setSpacingAfter(25);
 
-        // Headers Tabla 1
-        tablaConceptos.addCell(crearCeldaHeader("Concepto Global", fontTablaHeader));
-        tablaConceptos.addCell(crearCeldaHeader("Monto ($)", fontTablaHeader));
+        tablaConceptos.addCell(crearCeldaHeader("Concepto / Rubro de Evaluación", fontTablaHeader, azulClaro));
+        tablaConceptos.addCell(crearCeldaHeader("Balance ($)", fontTablaHeader, azulClaro));
 
-        // Datos Tabla 1
-        tablaConceptos.addCell(crearCeldaComun("Total de Gastos Médicos del Grupo:", fontTablaData));
-        tablaConceptos.addCell(crearCeldaComun("$" + totalGastosGrupo, fontTablaData));
+        tablaConceptos.addCell(crearCeldaComun("Total de Gastos Médicos del Grupo Familiar:", fontTablaDataGris, 8));
+        tablaConceptos.addCell(crearCeldaMonto(df.format(totalGastosGrupo), fontTablaData, Element.ALIGN_RIGHT));
 
+        tablaConceptos.addCell(crearCeldaComun("Cuota Individual Alícuota Obligatoria (Total / " + totalMiembros + "):",
+                fontTablaDataGris, 8));
+        tablaConceptos.addCell(crearCeldaMonto(df.format(cuotaIndividual), fontTablaData, Element.ALIGN_RIGHT));
+
+        tablaConceptos.addCell(crearCeldaComun("Total de Aportaciones Recaudadas a la Fecha:", fontTablaDataGris, 8));
         tablaConceptos.addCell(
-                crearCeldaComun("Cantidad que le corresponde aportar (Total / " + totalMiembros + "):", fontTablaData));
-        tablaConceptos.addCell(crearCeldaComun("$" + cuotaIndividual, fontTablaData));
+                crearCeldaMonto(df.format(totalAportadoFamiliar), fontTablaData, verdeExito, Element.ALIGN_RIGHT));
 
-        tablaConceptos.addCell(crearCeldaComun("Total que has aportado a la fecha:", fontTablaData));
-        tablaConceptos.addCell(crearCeldaComun("$" + totalAportadoFamiliar, fontTablaData));
-
-        tablaConceptos.addCell(crearCeldaComun("CANTIDAD FALTANTE POR COMPLETAR:", fontTablaData));
-        tablaConceptos.addCell(crearCeldaComun("$" + cantidadFaltante, fontTablaData));
-
+        if (tieneDeuda) {
+            tablaConceptos.addCell(crearCeldaComun("CANTIDAD PENDIENTE POR COMPLETAR:", fontTablaHeader, 8));
+            tablaConceptos.addCell(
+                    crearCeldaMonto(df.format(cantidadFaltante), fontTablaData, rojoAlerta, Element.ALIGN_RIGHT));
+        } else {
+            tablaConceptos
+                    .addCell(crearCeldaComun("BALANCE INDIVIDUAL COMPLETADO (SALDO A FAVOR):", fontTablaHeader, 8));
+            tablaConceptos.addCell(crearCeldaMonto(df.format(cantidadFaltante.abs()), fontTablaData, verdeExito,
+                    Element.ALIGN_RIGHT));
+        }
         document.add(tablaConceptos);
 
-        document.add(new Paragraph(" "));
-        document.add(new Paragraph(" "));
-
-        // --- 6. TABLA 2: Historial de Aportaciones ---
-        Paragraph seccionAportaciones = new Paragraph("HISTORIAL DE APORTACIONES RECAUDADAS", fontSeccion);
+        // --- 7. TABLA 2: HISTORIAL DETALLADO DE APORTACIONES ---
+        Paragraph seccionAportaciones = new Paragraph("HISTORIAL DE APORTACIONES REGISTRADAS", fontSeccion);
+        seccionAportaciones.setSpacingAfter(8);
         document.add(seccionAportaciones);
-        document.add(new Paragraph(" "));
 
         PdfPTable tablaAportaciones = new PdfPTable(3);
         tablaAportaciones.setWidthPercentage(100);
-        tablaAportaciones.setWidths(new float[] { 1.5f, 3.5f, 1.5f });
+        tablaAportaciones.setWidths(new float[] { 2.0f, 5.5f, 2.5f });
 
-        // Headers Tabla 2
-        tablaAportaciones.addCell(crearCeldaHeader("Fecha", fontTablaHeader));
-        tablaAportaciones.addCell(crearCeldaHeader("Descripción", fontTablaHeader));
-        tablaAportaciones.addCell(crearCeldaHeader("Monto Aportado", fontTablaHeader));
+        tablaAportaciones.addCell(crearCeldaHeader("Fecha de Pago", fontTablaHeader, azulClaro));
+        tablaAportaciones
+                .addCell(crearCeldaHeader("Descripción / Concepto del Movimiento", fontTablaHeader, azulClaro));
+        tablaAportaciones.addCell(crearCeldaHeader("Monto Transacción", fontTablaHeader, azulClaro));
 
-        // Datos Tabla 2
         if (aportaciones == null || aportaciones.isEmpty()) {
-            PdfPCell celdaVacia = new PdfPCell(
-                    new Paragraph("No se registran aportaciones para este miembro a la fecha.", fontTablaData));
+            PdfPCell celdaVacia = new PdfPCell(new Paragraph(
+                    "No se registran transacciones ni aportaciones para este miembro en el período actual.",
+                    fontTablaDataGris));
             celdaVacia.setColspan(3);
-            celdaVacia.setPadding(8);
+            celdaVacia.setPadding(12);
             celdaVacia.setHorizontalAlignment(Element.ALIGN_CENTER);
+            celdaVacia.setBorderColor(new java.awt.Color(226, 232, 240));
             tablaAportaciones.addCell(celdaVacia);
         } else {
+            boolean filaPar = false;
             for (Movimiento mov : aportaciones) {
                 if (mov != null) {
-                    String fechaStr = mov.getFecha() != null ? mov.getFecha().toString() : "";
-                    String descStr = mov.getDescripcion() != null ? mov.getDescripcion() : "";
-                    String montoStr = mov.getMonto() != null ? "$" + mov.getMonto() : "$0.00";
+                    java.awt.Color fondoFila = filaPar ? new java.awt.Color(247, 250, 252) : java.awt.Color.WHITE;
+                    String fechaStr = mov.getFecha() != null ? mov.getFecha().format(formatter) : "";
+                    String descStr = mov.getDescripcion() != null ? mov.getDescripcion() : "Aportación Regular";
+                    String montoStr = mov.getMonto() != null ? df.format(mov.getMonto()) : "$0.00";
 
-                    tablaAportaciones.addCell(crearCeldaComun(fechaStr, fontTablaData));
-                    tablaAportaciones.addCell(crearCeldaComun(descStr, fontTablaData));
-                    tablaAportaciones.addCell(crearCeldaComun(montoStr, fontTablaData));
+                    tablaAportaciones.addCell(crearCeldaComun(fechaStr, fontTablaData, fondoFila, 8));
+                    tablaAportaciones.addCell(crearCeldaComun(descStr, fontTablaDataGris, fondoFila, 8));
+                    tablaAportaciones.addCell(
+                            crearCeldaMonto(montoStr, fontTablaData, verdeExito, fondoFila, Element.ALIGN_RIGHT));
+                    filaPar = !filaPar;
                 }
             }
         }
-
         document.add(tablaAportaciones);
+
+        // --- 8. LÍNEAS DE FIRMA Y CIERRE FORMAL ---
+        PdfPTable tablaFirmas = new PdfPTable(2);
+        tablaFirmas.setWidthPercentage(100);
+        tablaFirmas.setSpacingBefore(45);
+
+        PdfPCell f1 = new PdfPCell();
+        f1.setBorder(Rectangle.NO_BORDER);
+        Paragraph pLine1 = new Paragraph("_________________________________\n", fontTablaDataGris);
+        pLine1.setAlignment(Element.ALIGN_CENTER);
+        pLine1.add(new Chunk("Firma de Conformidad\n", fontTablaHeader));
+        pLine1.add(new Chunk("Familiar Aportador Asignado", fontTablaDataGris));
+        f1.addElement(pLine1);
+        tablaFirmas.addCell(f1);
+
+        PdfPCell f2 = new PdfPCell();
+        f2.setBorder(Rectangle.NO_BORDER);
+        Paragraph pLine2 = new Paragraph("_________________________________\n", fontTablaDataGris);
+        pLine2.setAlignment(Element.ALIGN_CENTER);
+        pLine2.add(new Chunk("Sello de Validación\n", fontTablaHeader));
+        pLine2.add(new Chunk("Administración Control Médico", fontTablaDataGris));
+        f2.addElement(pLine2);
+        tablaFirmas.addCell(f2);
+
+        document.add(tablaFirmas);
         document.close();
 
         return out.toByteArray();
     }
 
-    // Métodos de ayuda para formatear las celdas rápidamente
-    private PdfPCell crearCeldaHeader(String texto, Font font) {
+    // =========================================================================
+    // MÉTODOS AUXILIARES ELEGANTES PARA REFACTORIZAR CELDAS (OPENPDF)
+    // =========================================================================
+    private PdfPCell crearCeldaHeader(String texto, Font font, java.awt.Color colorFondo) {
         PdfPCell cell = new PdfPCell(new Paragraph(texto, font));
-        cell.setPadding(6);
-        cell.setBackgroundColor(java.awt.Color.LIGHT_GRAY); // Opcional: fondo gris claro para los encabezados de tabla
+        cell.setPadding(8);
+        cell.setBackgroundColor(colorFondo);
+        cell.setBorderColor(new java.awt.Color(203, 213, 224));
+        cell.setBorder(Rectangle.BOTTOM);
+        cell.setBorderWidth(2f);
         return cell;
     }
 
-    private PdfPCell crearCeldaComun(String texto, Font font) {
+    private PdfPCell crearCeldaComun(String texto, Font font, int padding) {
+        return crearCeldaComun(texto, font, java.awt.Color.WHITE, padding);
+    }
+
+    private PdfPCell crearCeldaComun(String texto, Font font, java.awt.Color colorFondo, int padding) {
         PdfPCell cell = new PdfPCell(new Paragraph(texto, font));
-        cell.setPadding(6);
+        cell.setPadding(padding);
+        cell.setBackgroundColor(colorFondo);
+        cell.setBorderColor(new java.awt.Color(226, 232, 240));
+        cell.setBorder(Rectangle.BOTTOM);
+        return cell;
+    }
+
+    private PdfPCell crearCeldaMonto(String texto, Font font, int alineacion) {
+        return crearCeldaMonto(texto, font, font.getColor(), java.awt.Color.WHITE, alineacion);
+    }
+
+    private PdfPCell crearCeldaMonto(String texto, Font font, java.awt.Color colorTexto, int alineacion) {
+        return crearCeldaMonto(texto, font, colorTexto, java.awt.Color.WHITE, alineacion);
+    }
+
+    private PdfPCell crearCeldaMonto(String texto, Font font, java.awt.Color colorTexto, java.awt.Color colorFondo,
+            int alineacion) {
+        Font fontClonada = new Font(font);
+        fontClonada.setColor(colorTexto);
+        PdfPCell cell = new PdfPCell(new Paragraph(texto, fontClonada));
+        cell.setPadding(8);
+        cell.setBackgroundColor(colorFondo);
+        cell.setHorizontalAlignment(alineacion);
+        cell.setBorderColor(new java.awt.Color(226, 232, 240));
+        cell.setBorder(Rectangle.BOTTOM);
         return cell;
     }
 
@@ -480,5 +649,47 @@ public class ControlMedicoController {
     public String eliminarMovimiento(@RequestParam("id") Long id) {
         controlMedicoService.eliminarMovimiento(id);
         return "redirect:/"; // Redirecciona al Dashboard para ver los cambios
+    }
+
+    // =========================================================================
+    // HELPER PARA MARCA DE AGUA EN CAPA SUPERIOR
+    // =========================================================================
+    class DiseñoPdfHelper extends com.lowagie.text.pdf.PdfPageEventHelper {
+
+        private Font fontWatermark;
+
+        public DiseñoPdfHelper() {
+            // Fuente en un color sólido (el control de transparencia lo hace el PdfGState)
+            this.fontWatermark = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 46, Font.BOLD,
+                    new java.awt.Color(13, 110, 253));
+        }
+
+        @Override
+        public void onEndPage(com.lowagie.text.pdf.PdfWriter writer, Document document) {
+            // 🌟 OBTENER EL LIENZO SUPERIOR (Para pintar ENCIMA de las tablas)
+            com.lowagie.text.pdf.PdfContentByte cbCanvas = writer.getDirectContent();
+
+            cbCanvas.saveState();
+            cbCanvas.beginText();
+            cbCanvas.setFontAndSize(fontWatermark.getCalculatedBaseFont(false), 46);
+
+            // 🎨 CONFIGURAR OPACIDAD REAL (0.08 = 8% de visibilidad, ideal para no molestar
+            // la lectura)
+            com.lowagie.text.pdf.PdfGState gState = new com.lowagie.text.pdf.PdfGState();
+            gState.setFillOpacity(0.08f);
+            gState.setStrokeOpacity(0.08f);
+            cbCanvas.setGState(gState);
+
+            cbCanvas.setColorFill(new java.awt.Color(13, 110, 253)); // Usamos tu --primary-color
+
+            float x = PageSize.A4.getWidth() / 2;
+            float y = PageSize.A4.getHeight() / 2;
+
+            // Estampado al frente rotado a 45 grados
+            cbCanvas.showTextAligned(Element.ALIGN_CENTER, "VALIDADO - CONTROL MÉDICO", x, y, 45);
+
+            cbCanvas.endText();
+            cbCanvas.restoreState();
+        }
     }
 }

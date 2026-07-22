@@ -1,0 +1,27 @@
+<svg id="svg-logo-2" width="380" height="110" viewBox="0 0 380 110" fill="none" xmlns="http://www.w3.org/2000/svg" class="max-w-full h-auto">
+                            <!-- Icon Group -->
+                            <g transform="translate(15, 10)">
+                                <defs>
+                                    <linearGradient id="grad-c2" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" stop-color="#2563EB"/>
+                                        <stop offset="100%" stop-color="#059669"/>
+                                    </linearGradient>
+                                </defs>
+                                
+                                <!-- Outer Heart Contour -->
+                                <path d="M42 80C42 80 10 55 10 32C10 18 20 10 32 10C39 10 42 15 42 15C42 15 45 10 52 10C64 10 74 18 74 32C74 55 42 80 42 80Z" fill="url(#grad-c2)"/>
+                                
+                                <!-- Inner ECG line white -->
+                                <path d="M10 35H25L31 22L37 46L43 28L48 38L53 35H74" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                                
+                                <!-- Small Medical Cross badge -->
+                                <rect x="58" y="10" width="22" height="22" rx="6" fill="#10B981" stroke="#FFFFFF" stroke-width="2"/>
+                                <path d="M69 15V27M63 21H75" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round"/>
+                            </g>
+
+                            <!-- Typography -->
+                            <g transform="translate(115, 30)">
+                                <text x="0" y="26" font-family="'Inter', sans-serif" font-weight="800" font-size="24" fill="#1E293B" class="logo-text-main">Control Médico</text>
+                                <text x="0" y="48" font-family="'Inter', sans-serif" font-weight="700" font-size="13" fill="#059669" letter-spacing="1.5" class="logo-text-sub">SISTEMA FAMILIAR</text>
+                            </g>
+                        </svg>
