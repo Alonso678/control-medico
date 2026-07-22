@@ -72,29 +72,29 @@ public class ControlMedicoController {
         String usernameLogueado = authentication.getName();
         Set<String> roles = AuthorityUtils.authorityListToSet(authentication.getAuthorities());
 
-        log.info("[LOG-DASHBOARD] 👤 Usuario firmado: '{}'", usernameLogueado);
-        log.info("[LOG-DASHBOARD] 🔑 Roles detectados: {}", roles);
+        log.info("[LOG-DASHBOARD] Usuario firmado: '{}'", usernameLogueado);
+        log.info("[LOG-DASHBOARD] Roles detectados: {}", roles);
 
         // 1. DESVÍO DE SEGURIDAD: SYS_ADMIN va a su consola global
         if (roles.contains("ROLE_SYS_ADMIN")) {
-            log.info("[LOG-DASHBOARD] 🔀 Detectado ROLE_SYS_ADMIN. Redireccionando a consola global.");
+            log.info("[LOG-DASHBOARD] Detectado ROLE_SYS_ADMIN. Redireccionando a consola global.");
             return "redirect:dashboard";
         }
 
         // 2. MULTI-TENANCY: Localizar datos de la familia asignada al usuario
         Familiar familiar = familiarRepository.findByUsername(usernameLogueado)
                 .orElseThrow(() -> {
-                    log.error("[LOG-DASHBOARD] ❌ ERROR: El usuario '{}' no existe en familiares.", usernameLogueado);
+                    log.error("[LOG-DASHBOARD] ERROR: El usuario '{}' no existe en familiares.", usernameLogueado);
                     return new RuntimeException("Usuario no encontrado en la sesión");
                 });
 
         if (familiar.getFamilia() == null) {
-            log.error("[LOG-DASHBOARD] ❌ El familiar '{}' no pertenece a ninguna familia.", usernameLogueado);
+            log.error("[LOG-DASHBOARD] El familiar '{}' no pertenece a ninguna familia.", usernameLogueado);
             throw new RuntimeException("El usuario no tiene una familia asignada.");
         }
 
         Long familiaId = familiar.getFamilia().getId();
-        log.info("[LOG-DASHBOARD] 🏠 Multi-Tenant Activo. Familia ID vinculada: {}", familiaId);
+        log.info("[LOG-DASHBOARD] Multi-Tenant Activo. Familia ID vinculada: {}", familiaId);
 
         // 3. CÁLCULOS FINANCIEROS (Aislados por familiaId)
         BigDecimal totalAportado = controlMedicoService.calcularTotalAportado(familiaId);
@@ -128,12 +128,12 @@ public class ControlMedicoController {
         // 6. CONTROL DE ACCESO POR ROLES EN LA VISTA
         if (roles.contains("ROLE_ADMIN")) {
             log.info(
-                    "[LOG-DASHBOARD] 🛡️ Usuario es ADMINISTRADOR de la familia. Renderizando panel de control total.");
-            // ❌ ELIMINADA la línea: model.addAttribute("nuevoMovimiento", new
+                    "[LOG-DASHBOARD] Usuario es ADMINISTRADOR de la familia. Renderizando panel de control total.");
+            // ELIMINADA la línea: model.addAttribute("nuevoMovimiento", new
             // Movimiento());
             return "dashboard-admin";
         } else if (roles.contains("ROLE_FAMILIAR")) {
-            log.info("[LOG-DASHBOARD] 👥 Usuario es FAMILIAR estándar. Renderizando panel de solo lectura.");
+            log.info("[LOG-DASHBOARD] Usuario es FAMILIAR estándar. Renderizando panel de solo lectura.");
             return "dashboard-admin";
         }
 
@@ -202,7 +202,7 @@ public class ControlMedicoController {
             return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
 
         } catch (Exception e) {
-            log.error("[LOG-REPORTE] ❌ Error al procesar la descarga del reporte: ", e);
+            log.error("[LOG-REPORTE] Error al procesar la descarga del reporte: ", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -230,10 +230,11 @@ public class ControlMedicoController {
 
         // --- 2. Inicialización del Documento ---
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        Document document = new Document(PageSize.A4, 45, 45, 45, 45);
+        // Cambiamos el margen inferior de 45 a 55 para proteger la zona del Footer
+        Document document = new Document(PageSize.A4, 45, 45, 45, 55);
         PdfWriter writer = PdfWriter.getInstance(document, out);
 
-        // 🛡️ REGISTRO DEL MANEJADOR VISUAL (Logo y Marca de Agua)
+        // REGISTRO DEL MANEJADOR VISUAL (Logo y Marca de Agua)
         DiseñoPdfHelper helper = new DiseñoPdfHelper();
         writer.setPageEvent(helper);
 
@@ -272,7 +273,7 @@ public class ControlMedicoController {
         // máx)
         Image logoCelda = null;
         try {
-            // 📁 Apunta directamente al nuevo nombre de archivo dentro del Classpath de
+            // Apunta directamente al nuevo nombre de archivo dentro del Classpath de
             // Spring Boot
             org.springframework.core.io.Resource resource = new org.springframework.core.io.ClassPathResource(
                     "static/img/control_medico_sistema_familiar.png");
@@ -343,14 +344,24 @@ public class ControlMedicoController {
         pTextosDerecha.add(pTitulo);
 
         // Subtítulo / Asignado a
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-        Chunk chunkAsignado = new Chunk("Asignado a: " + familiar.getNombre() + "\n", fontHeaderSub); 
-        pTextosDerecha.add(chunkAsignado);
+        Paragraph pAsignado = new Paragraph("Asignado a: " + familiar.getNombre(), fontHeaderSub);
+        pAsignado.setAlignment(Element.ALIGN_RIGHT);
+        pAsignado.setSpacingBefore(2f); // Control sutil de separación
+        pTextosDerecha.add(pAsignado);
 
         // Fecha de Emisión
-        Chunk chunkEmision = new Chunk("Emisión: " + java.time.LocalDate.now().format(formatter), fontHeaderMeta);
-        pTextosDerecha.add(chunkEmision);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        Paragraph pEmision = new Paragraph("Emisión: " + java.time.LocalDate.now().format(formatter), fontHeaderMeta);
+        pEmision.setAlignment(Element.ALIGN_RIGHT);
+        pTextosDerecha.add(pEmision);
 
+        // NUEVA ETIQUETA: Estado del Saldo (Línea independiente)
+        Paragraph pEstado = new Paragraph("Estado: v2.0 Saldo Actualizado al Día", fontHeaderMeta);
+        pEstado.setAlignment(Element.ALIGN_RIGHT);
+        pEstado.setSpacingBefore(1f);
+        pTextosDerecha.add(pEstado);
+
+        // Agregar contenedor a la celda
         celdaDerechaTextos.addElement(pTextosDerecha);
         banner.addCell(celdaDerechaTextos);
 
@@ -529,15 +540,15 @@ public class ControlMedicoController {
                 log.info("[LOG-CATEGORIA-DIAGNOSTICO] Objeto Categoria NO es null. ID de categoría en binding: {}",
                         movimiento.getCategoria().getId());
             } else {
-                log.warn("[LOG-CATEGORIA-DIAGNOSTICO] ⚠️ El objeto Categoria recibido en el @ModelAttribute es NULL.");
+                log.warn("[LOG-CATEGORIA-DIAGNOSTICO] El objeto Categoria recibido en el @ModelAttribute es NULL.");
             }
         } else {
-            log.error("[LOG-CATEGORIA-DIAGNOSTICO] ❌ El objeto Movimiento recibido es completamente NULL.");
+            log.error("[LOG-CATEGORIA-DIAGNOSTICO] El objeto Movimiento recibido es completamente NULL.");
         }
 
         // 1. Validar errores de binding de Spring
         if (result.hasErrors()) {
-            log.error("[LOG-MOVIMIENTO] ❌ Error de binding en el formulario: {}", result.getAllErrors());
+            log.error("[LOG-MOVIMIENTO] Error de binding en el formulario: {}", result.getAllErrors());
             redirectAttributes.addFlashAttribute("mensajeError", "Datos del formulario inválidos.");
             return "redirect:/";
         }
@@ -555,13 +566,13 @@ public class ControlMedicoController {
             // REFUERZO DE SEGURIDAD: Solo el administrador de la familia puede guardar
             // movimientos
             if (Boolean.FALSE.equals(administradorLogueado.getAdministrador())) {
-                log.warn("[LOG-CATEGORIA-DIAGNOSTICO] ⚠️ Acceso no autorizado para: {}", username);
+                log.warn("[LOG-CATEGORIA-DIAGNOSTICO] Acceso no autorizado para: {}", username);
                 return "redirect:/access-denied";
             }
 
             // 1. Verificación de seguridad inicial (Evita el NullPointerException de raíz)
             if (movimiento == null) {
-                log.error("[LOG-MOVIMIENTO] ❌ El objeto movimiento recibido en el controlador es NULL.");
+                log.error("[LOG-MOVIMIENTO] El objeto movimiento recibido en el controlador es NULL.");
                 redirectAttributes.addFlashAttribute("mensajeError", "El movimiento no pudo ser procesado.");
                 return "redirect:/";
             }
@@ -569,7 +580,7 @@ public class ControlMedicoController {
             // 2. Obtener el familiar seleccionado en el modal del formulario de forma
             // segura
             if (movimiento.getFamiliar() == null || movimiento.getFamiliar().getId() == null) {
-                log.warn("[LOG-MOVIMIENTO] ⚠️ Intento de guardar sin especificar un familiar.");
+                log.warn("[LOG-MOVIMIENTO] Intento de guardar sin especificar un familiar.");
                 throw new RuntimeException("Debe seleccionar un familiar válido.");
             }
             Familiar familiarSeleccionado = familiarRepository.findById(movimiento.getFamiliar().getId())
@@ -607,20 +618,20 @@ public class ControlMedicoController {
                                 categoriaPersistida.getNombre());
                         movimiento.setCategoria(categoriaPersistida);
                     } else {
-                        log.error("[LOG-CATEGORIA-DIAGNOSTICO] ❌ La categoría con ID {} NO EXISTE en la base de datos.",
+                        log.error("[LOG-CATEGORIA-DIAGNOSTICO] La categoría con ID {} NO EXISTE en la base de datos.",
                                 catId);
                         movimiento.setCategoria(null);
                     }
                 } else {
                     log.warn(
-                            "[LOG-CATEGORIA-DIAGNOSTICO] ⚠️ Se envió un GASTO pero el ID de categoría llegó vacío/nulo.");
+                            "[LOG-CATEGORIA-DIAGNOSTICO] Se envió un GASTO pero el ID de categoría llegó vacío/nulo.");
                     movimiento.setCategoria(null);
                 }
             }
 
             // Log de estado final previo a guardar
             log.info(
-                    "[LOG-MOVIMIENTO] 💾 Guardando en DB -> Tipo: '{}', Familiar: '{}', Categoria asignada final: '{}', Monto: ${}",
+                    "[LOG-MOVIMIENTO] Guardando en DB -> Tipo: '{}', Familiar: '{}', Categoria asignada final: '{}', Monto: ${}",
                     movimiento.getTipo(),
                     movimiento.getFamiliar() != null ? movimiento.getFamiliar().getNombre() : "NULO",
                     movimiento.getCategoria() != null
@@ -652,44 +663,95 @@ public class ControlMedicoController {
     }
 
     // =========================================================================
-    // HELPER PARA MARCA DE AGUA EN CAPA SUPERIOR
+    // HELPER OPTIMIZADO: MARCA DE AGUA Y PAGINACIÓN DINÁMICA (X de Y)
     // =========================================================================
     class DiseñoPdfHelper extends com.lowagie.text.pdf.PdfPageEventHelper {
 
         private Font fontWatermark;
+        private Font fontFooter;
+        private com.lowagie.text.pdf.PdfTemplate totalPaginasTemplate;
 
         public DiseñoPdfHelper() {
-            // Fuente en un color sólido (el control de transparencia lo hace el PdfGState)
+            // Fuente de la marca de agua
             this.fontWatermark = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 46, Font.BOLD,
                     new java.awt.Color(13, 110, 253));
+            // Fuente sutil para el pie de página
+            this.fontFooter = FontFactory.getFont(FontFactory.HELVETICA, 8, Font.NORMAL,
+                    new java.awt.Color(128, 128, 128));
         }
+
+        // 1. Inicializamos el template asíncrono cuando el documento se abre
+        //@Override
+        // public void onOpenPage(com.lowagie.text.pdf.PdfWriter writer, Document document) {
+        //     if (totalPaginasTemplate == null) {
+        //         totalPaginasTemplate = writer.getDirectContent().createTemplate(30, 12);
+        //     }
+        // }
 
         @Override
         public void onEndPage(com.lowagie.text.pdf.PdfWriter writer, Document document) {
-            // 🌟 OBTENER EL LIENZO SUPERIOR (Para pintar ENCIMA de las tablas)
             com.lowagie.text.pdf.PdfContentByte cbCanvas = writer.getDirectContent();
 
+            // 🌟 CONTROL DE SEGURIDAD FALTANTE: Inicialización perezosa si viene null
+            if (this.totalPaginasTemplate == null) {
+                this.totalPaginasTemplate = cbCanvas.createTemplate(30, 12);
+            }
+
+            // -----------------------------------------------------------------
+            // A. ESTAMPAR MARCA DE AGUA (En capa superior con opacidad)
+            // -----------------------------------------------------------------
             cbCanvas.saveState();
             cbCanvas.beginText();
             cbCanvas.setFontAndSize(fontWatermark.getCalculatedBaseFont(false), 46);
 
-            // 🎨 CONFIGURAR OPACIDAD REAL (0.08 = 8% de visibilidad, ideal para no molestar
-            // la lectura)
             com.lowagie.text.pdf.PdfGState gState = new com.lowagie.text.pdf.PdfGState();
             gState.setFillOpacity(0.08f);
             gState.setStrokeOpacity(0.08f);
             cbCanvas.setGState(gState);
 
-            cbCanvas.setColorFill(new java.awt.Color(13, 110, 253)); // Usamos tu --primary-color
+            cbCanvas.setColorFill(new java.awt.Color(13, 110, 253));
 
             float x = PageSize.A4.getWidth() / 2;
             float y = PageSize.A4.getHeight() / 2;
 
-            // Estampado al frente rotado a 45 grados
             cbCanvas.showTextAligned(Element.ALIGN_CENTER, "VALIDADO - CONTROL MÉDICO", x, y, 45);
-
             cbCanvas.endText();
             cbCanvas.restoreState();
+
+            // -----------------------------------------------------------------
+            // B. ESTAMPAR PIE DE PÁGINA DINÁMICO (Página X de [Template])
+            // -----------------------------------------------------------------
+            cbCanvas.saveState();
+            cbCanvas.beginText();
+            cbCanvas.setFontAndSize(fontFooter.getCalculatedBaseFont(false), 8);
+            cbCanvas.setColorFill(new java.awt.Color(128, 128, 128));
+
+            String textoPagina = "Página " + writer.getPageNumber() + " de ";
+            float anchoTexto = fontFooter.getCalculatedBaseFont(false).getWidthPoint(textoPagina, 8);
+
+            float xFooter = PageSize.A4.getWidth() - 85;
+            float yFooter = 25;
+
+            cbCanvas.showTextAligned(Element.ALIGN_LEFT, textoPagina, xFooter, yFooter, 0);
+            cbCanvas.endText();
+            cbCanvas.restoreState();
+
+            // Ahora estamos 100% seguros de que totalPaginasTemplate no es null
+            cbCanvas.addTemplate(totalPaginasTemplate, xFooter + anchoTexto, yFooter - 1);
+        }
+
+        // 2. Cuando el documento se termina de escribir, rellenamos el valor "Y"
+        // global
+        @Override
+        public void onCloseDocument(com.lowagie.text.pdf.PdfWriter writer, Document document) {
+            if (totalPaginasTemplate != null) {
+                totalPaginasTemplate.beginText();
+                totalPaginasTemplate.setFontAndSize(fontFooter.getCalculatedBaseFont(false), 8);
+                totalPaginasTemplate.setColorFill(new java.awt.Color(128, 128, 128));
+                // Escribe el número total acumulado de páginas
+                totalPaginasTemplate.showText(String.valueOf(writer.getPageNumber() - 1));
+                totalPaginasTemplate.endText();
+            }
         }
     }
 }
